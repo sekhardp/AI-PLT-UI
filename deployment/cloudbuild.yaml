@@ -1,5 +1,13 @@
 steps:
-  # 1. Build the container image using BuildKit caching
+  # 1. Create .env file for Vite build-time configuration
+  - name: 'bash'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'echo "VITE_API_BASE_URL=$_API_BASE_URL" > .env'
+    id: 'Create .env file'
+
+  # 2. Build the container image using BuildKit caching
   - name: 'gcr.io/cloud-builders/docker'
     env:
       - 'DOCKER_BUILDKIT=1'
@@ -56,6 +64,7 @@ substitutions:
   _SERVICE_NAME: 'ai-plt-ui'
   _REGION: 'us-central1'
   _REPOSITORY: 'cloud-run-source-deploy'
+  _API_BASE_URL: 'https://ai-plt-be-git-24286129227.us-central1.run.app/api/v1'
 
 images:
   - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_SERVICE_NAME:$COMMIT_SHA'
