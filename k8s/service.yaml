@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-agent-framework-ui
+  namespace: multi-agent
+  labels:
+    app: multi-agent-framework-ui
+spec:
+  selector:
+    app: multi-agent-framework-ui
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+  type: ClusterIP

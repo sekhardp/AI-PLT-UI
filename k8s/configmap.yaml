@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-agent-framework-ui-config
+  namespace: multi-agent
+  labels:
+    app: multi-agent-framework-ui
+data:
+  # Browser-side API URL — must be reachable from the user's browser.
+  # Using localhost:8001 which is exposed via: kubectl port-forward svc/multi-agent-framework-api 8001:8001 -n multi-agent
+  API_BASE_URL: "http://localhost:8001"

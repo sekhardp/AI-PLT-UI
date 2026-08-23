@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multi-agent-framework-ui
+  namespace: multi-agent
+  labels:
+    app: multi-agent-framework-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multi-agent-framework-ui
+  template:
+    metadata:
+      labels:
+        app: multi-agent-framework-ui
+    spec:
+      containers:
+        - name: multi-agent-framework-ui
+          image: multi-agent-framework-ui:latest
+          # Never pull — use the locally-built image available to Rancher Desktop k3s
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: multi-agent-framework-ui-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
