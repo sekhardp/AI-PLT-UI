@@ -214,6 +214,7 @@ function MainLayout({
   handleUploadAll,
   setPendingFiles,
 }: MainLayoutProps) {
+  const { user } = useAuth();
   const location = useLocation();
 
   let topbarTitle = 'AI Platform Chat';
@@ -240,7 +241,31 @@ function MainLayout({
       <div className="main-area">
         <header className="topbar">
           <h1 className="topbar-title">{topbarTitle}</h1>
-          <AgentChips />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {user && (
+              <div 
+                className="credit-chip" 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(19, 62, 66, 0.06)',
+                  border: '1px solid rgba(19, 62, 66, 0.12)',
+                  borderRadius: 'var(--r-full)',
+                  padding: '6px 14px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary-dark)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+                title={user.role === 'admin' ? 'Unlimited Admin Credits' : `${user.credits} remaining credits`}
+              >
+                <span style={{ color: 'var(--warning)', marginRight: '2px' }}>⚡</span>
+                {user.role === 'admin' ? 'Admin (Unlimited)' : `${user.credits} Credits`}
+              </div>
+            )}
+            <AgentChips />
+          </div>
         </header>
 
         <Outlet />

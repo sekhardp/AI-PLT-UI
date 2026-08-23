@@ -193,6 +193,19 @@ export function UserPage() {
                 <span className="info-badge">{user.role}</span>
               </span>
             </div>
+            <hr style={{ border: '0', borderTop: '1px solid rgba(19, 62, 66, 0.08)', margin: '4px 0' }} />
+            <div className="info-row">
+              <span className="info-label">Credits</span>
+              <span className="info-value" style={{ fontWeight: 600 }}>
+                {user.role === 'admin' ? 'Unlimited (Admin Bypass)' : `${user.credits} Credits`}
+              </span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Token Usage</span>
+              <span className="info-value" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+                {user.tokensUsed.toLocaleString()} Tokens
+              </span>
+            </div>
           </div>
         </div>
 

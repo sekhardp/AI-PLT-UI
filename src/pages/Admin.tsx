@@ -1,24 +1,16 @@
 import React, { useState } from 'react';
-import { Shield, Users, Activity, Clock, Settings, Save, Server, Play } from 'lucide-react';
-
-interface MockUser {
-  id: string;
-  name: string;
-  email: string;
-  role: 'user' | 'admin';
-  status: 'active' | 'inactive';
-}
+import { Shield, Users, Activity, Clock, Settings, Save, Server, Check } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export function AdminPage() {
+  const { usersList, updateUserCredits } = useAuth();
+  
   const [optimizer, setOptimizer] = useState('agentic');
   const [logLevel, setLogLevel] = useState('info');
   const [cacheEnabled, setCacheEnabled] = useState(true);
-  const [users, setUsers] = useState<MockUser[]>([
-    { id: '1', name: 'Admin Manager', email: 'admin@example.com', role: 'admin', status: 'active' },
-    { id: '2', name: 'Sarath', email: 'sarath@example.com', role: 'user', status: 'active' },
-    { id: '3', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'user', status: 'active' },
-    { id: '4', name: 'Robert Chen', email: 'robert.chen@example.com', role: 'user', status: 'inactive' },
-  ]);
+
+  const [creditInputs, setCreditInputs] = useState<Record<string, number>>({});
+  const [successStates, setSuccessStates] = useState<Record<string, boolean>>({});
 
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
@@ -34,10 +26,15 @@ export function AdminPage() {
     }, 1000);
   };
 
-  const handleToggleUserStatus = (id: string) => {
-    setUsers(prev =>
-      prev.map(u => u.id === id ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' } : u)
-    );
+  const handleUpdateCredits = (email: string) => {
+    const newCredits = creditInputs[email];
+    if (newCredits !== undefined) {
+      updateUserCredits(email, newCredits);
+      setSuccessStates(prev => ({ ...prev, [email]: true }));
+      setTimeout(() => {
+        setSuccessStates(prev => ({ ...prev, [email]: false }));
+      }, 2000);
+    }
   };
 
   return (
@@ -354,8 +351,8 @@ export function AdminPage() {
             <span>Total Accounts</span>
             <Users size={14} color="var(--accent)" />
           </div>
-          <div className="stat-card-value">{users.length}</div>
-          <div className="stat-card-desc">{users.filter(u => u.status === 'active').length} active user sessions</div>
+          <div className="stat-card-value">{usersList.length}</div>
+          <div className="stat-card-desc">{usersList.filter(u => u.credits > 0).length} active credit budgets</div>
         </div>
 
         <div className="stat-card">
@@ -382,41 +379,67 @@ export function AdminPage() {
                 <tr>
                   <th>User</th>
                   <th>Role</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>Tokens Used</th>
+                  <th>Credit Budget</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
-                  <tr key={u.id}>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{u.name}</div>
-                      <div style={{ opacity: 0.6, fontSize: '0.72rem' }}>{u.email}</div>
-                    </td>
-                    <td>
-                      <span className={`badge-role ${u.role}`}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className="status-dot"
-                        style={{ background: u.status === 'active' ? 'var(--success)' : 'var(--danger)' }}
-                      />
-                      {u.status}
-                    </td>
-                    <td>
-                      <button
-                        className="action-icon-btn"
-                        onClick={() => handleToggleUserStatus(u.id)}
-                        title={u.status === 'active' ? 'Deactivate Account' : 'Activate Account'}
-                        aria-label="Toggle user status"
-                      >
-                        <Play size={12} style={{ transform: u.status === 'active' ? 'rotate(90deg)' : 'none', color: u.status === 'active' ? 'var(--danger)' : 'var(--success)' }} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {usersList.map((u) => {
+                  const inputVal = creditInputs[u.email] !== undefined ? creditInputs[u.email] : u.credits;
+                  const isSaved = successStates[u.email];
+
+                  return (
+                    <tr key={u.email}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{u.username}</div>
+                        <div style={{ opacity: 0.6, fontSize: '0.72rem' }}>{u.email}</div>
+                      </td>
+                      <td>
+                        <span className={`badge-role ${u.role}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
+                        {u.tokensUsed.toLocaleString()}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="number"
+                            value={inputVal}
+                            onChange={(e) =>
+                              setCreditInputs({
+                                ...creditInputs,
+                                [u.email]: Math.max(0, parseInt(e.target.value) || 0),
+                              })
+                            }
+                            style={{
+                              width: '70px',
+                              padding: '5px 8px',
+                              border: '1px solid rgba(19, 62, 66, 0.15)',
+                              borderRadius: 'var(--r-sm)',
+                              color: 'var(--text-primary-dark)',
+                              background: '#fff',
+                              fontSize: '0.8rem',
+                              textAlign: 'center',
+                            }}
+                            min="0"
+                            aria-label={`Credits for ${u.username}`}
+                          />
+                          <button
+                            className="action-icon-btn"
+                            onClick={() => handleUpdateCredits(u.email)}
+                            title="Save Credits"
+                            aria-label="Save credits"
+                            style={{ color: isSaved ? 'var(--success)' : 'var(--accent)' }}
+                          >
+                            {isSaved ? <Check size={14} /> : <Save size={14} />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

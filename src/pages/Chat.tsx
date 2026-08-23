@@ -4,6 +4,7 @@ import { Send, Paperclip, CheckCircle, X, Network, Bot } from 'lucide-react';
 import type { Message, UploadedFile } from '../types';
 import { streamChat, sendFeedback, fetchSession } from '../api';
 import { MessageBubble } from '../components/MessageBubble';
+import { useAuth } from '../context/AuthContext';
 
 // ─── Welcome Screen ──────────────────────────────────────────────────────────
 const STARTERS = [
@@ -76,9 +77,12 @@ export function Chat({
   setPendingFiles,
   onShowUpload,
 }: ChatProps) {
+  const { user, deductCredit } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+
+  const isCreditsExhausted = !!(user && user.role !== 'admin' && user.credits <= 0);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -117,7 +121,7 @@ export function Chat({
   }, [input]);
 
   const submitMessage = useCallback(async (prompt: string) => {
-    if (!prompt.trim() || isStreaming) return;
+    if (!prompt.trim() || isStreaming || isCreditsExhausted) return;
     setInput('');
 
     // If there is no active session yet, create one
@@ -157,9 +161,15 @@ export function Chat({
           );
         },
         async () => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === streamingMsgId ? { ...m, isStreaming: false } : m))
-          );
+          let finalTokens = 0;
+          setMessages((prev) => {
+            const finalMsg = prev.find((m) => m.id === streamingMsgId);
+            const generatedText = finalMsg ? finalMsg.content : '';
+            finalTokens = Math.max(1, Math.ceil(generatedText.length / 4));
+            return prev.map((m) => (m.id === streamingMsgId ? { ...m, isStreaming: false } : m));
+          });
+          
+          deductCredit(1, finalTokens);
           setIsStreaming(false);
           await refreshSessions();
         }
@@ -178,7 +188,7 @@ export function Chat({
       );
       setIsStreaming(false);
     }
-  }, [activeSessionId, isStreaming, onSessionCreated, refreshSessions]);
+  }, [activeSessionId, isStreaming, isCreditsExhausted, onSessionCreated, deductCredit, refreshSessions]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -216,6 +226,27 @@ export function Chat({
       </div>
 
       <div className="input-area">
+        {isCreditsExhausted && (
+          <div className="credits-exhausted-banner" style={{
+            padding: '10px 16px',
+            background: 'rgba(220, 38, 38, 0.08)',
+            border: '1px solid rgba(220, 38, 38, 0.2)',
+            borderRadius: 'var(--r-md)',
+            color: 'var(--danger)',
+            fontSize: '0.82rem',
+            fontWeight: 600,
+            textAlign: 'center',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            animation: 'fadeSlideIn 0.2s ease'
+          }}>
+            <span>⚠️</span> Your credits are exhausted. Please contact an administrator to configure credits.
+          </div>
+        )}
+
         {uploadedCount > 0 && (
           <div className="upload-files-row">
             {pendingFiles
@@ -241,6 +272,7 @@ export function Chat({
             onClick={onShowUpload}
             aria-label="Attach file"
             id="btn-attach-file"
+            disabled={isCreditsExhausted}
           >
             <Paperclip size={18} />
           </button>
@@ -250,8 +282,8 @@ export function Chat({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything — the Orchestrator will route to the best agent…"
-            disabled={isStreaming}
+            placeholder={isCreditsExhausted ? "Credits exhausted — please recharge to chat" : "Ask anything — the Orchestrator will route to the best agent…"}
+            disabled={isStreaming || isCreditsExhausted}
             rows={1}
             aria-label="Chat input"
             id="chat-input"
@@ -259,7 +291,7 @@ export function Chat({
           <button
             className="send-btn"
             onClick={() => submitMessage(input)}
-            disabled={!input.trim() || isStreaming}
+            disabled={!input.trim() || isStreaming || isCreditsExhausted}
             aria-label="Send message"
             id="btn-send"
           >
