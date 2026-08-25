@@ -71,6 +71,7 @@ export function UserPage() {
           border: 1px solid var(--glass-border);
           border-radius: var(--r-lg);
           padding: 24px;
+          color: #133e42;
           box-shadow: var(--shadow-sm);
           display: flex;
           flex-direction: column;
