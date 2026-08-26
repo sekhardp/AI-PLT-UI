@@ -72,6 +72,7 @@ export function Chat({
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastLoadedSessionIdRef = useRef<string>('');
 
   // Auto-scroll
   useEffect(() => {
@@ -81,6 +82,11 @@ export function Chat({
   // Load session messages when activeSessionId changes
   useEffect(() => {
     if (activeSessionId) {
+      // If this session was just initialized locally in submitMessage, don't overwrite in-flight messages
+      if (activeSessionId === lastLoadedSessionIdRef.current) {
+        return;
+      }
+      lastLoadedSessionIdRef.current = activeSessionId;
       fetchSession(activeSessionId)
         .then((msgs) => {
           setMessages(
@@ -94,6 +100,7 @@ export function Chat({
         })
         .catch(console.warn);
     } else {
+      lastLoadedSessionIdRef.current = '';
       setMessages([]);
     }
   }, [activeSessionId]);
@@ -113,6 +120,7 @@ export function Chat({
     // If there is no active session yet, create one
     const sid = activeSessionId || uuidv4();
     if (!activeSessionId) {
+      lastLoadedSessionIdRef.current = sid; // Mark as locally initialized so useEffect won't wipe state
       onSessionCreated(sid);
     }
 
