@@ -99,33 +99,37 @@ export function Sidebar({
 
       <div className="sidebar-footer">
         {/* Navigation routes */}
-        <Link
-          to="/"
-          className={`sidebar-nav-btn ${location.pathname === '/' ? 'active' : ''}`}
-          id="btn-nav-chat"
-        >
-          <Network size={15} /> Chat Workspace
-        </Link>
+        {location.pathname !== '/' && (
+          <Link
+            to="/"
+            className="sidebar-nav-btn"
+            id="btn-nav-chat"
+          >
+            <Network size={15} /> Chat Workspace
+          </Link>
+        )}
 
-        {user?.role === 'admin' && (
+        {user?.role === 'admin' && location.pathname !== '/admin' && (
           <Link
             to="/admin"
-            className={`sidebar-nav-btn ${location.pathname === '/admin' ? 'active' : ''}`}
+            className="sidebar-nav-btn"
             id="btn-nav-admin"
           >
             <ShieldAlert size={15} /> Admin Dashboard
           </Link>
         )}
 
-        <Link
-          to="/profile"
-          className={`sidebar-nav-btn ${location.pathname === '/profile' ? 'active' : ''}`}
-          id="btn-nav-profile"
-        >
-          <UserIcon size={15} /> User Profile
-        </Link>
+        {location.pathname !== '/profile' && (
+          <Link
+            to="/profile"
+            className="sidebar-nav-btn"
+            id="btn-nav-profile"
+          >
+            <UserIcon size={15} /> User Profile
+          </Link>
+        )}
 
-        <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '8px 0' }} />
+        <hr style={{ border: '0', borderTop: '1px solid var(--glass-border)', margin: '8px 0' }} />
 
         <button className="sidebar-nav-btn" onClick={onShowAgents} id="btn-show-agents">
           <Cpu size={15} /> Agent Registry
@@ -134,15 +138,15 @@ export function Sidebar({
           <Upload size={15} /> File Upload
         </button>
 
-        <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '8px 0' }} />
+        <hr style={{ border: '0', borderTop: '1px solid var(--glass-border)', margin: '8px 0' }} />
 
         {user && (
-          <div className="sidebar-user-info" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px' }}>
+          <div className="sidebar-user-info" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: 'rgba(19, 62, 66, 0.05)', borderRadius: 'var(--r-md)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-light)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary-dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.username}
               </span>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.role === 'admin' ? 'Administrator' : 'Standard User'}
               </span>
             </div>
@@ -151,18 +155,19 @@ export function Sidebar({
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-muted)',
+                color: 'var(--text-primary-dark)',
+                opacity: 0.7,
                 cursor: 'pointer',
-                padding: '4px',
+                padding: '6px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: '4px',
+                borderRadius: 'var(--r-sm)',
               }}
               title="Logout"
               id="btn-logout"
             >
-              <LogOut size={14} />
+              <LogOut size={15} />
             </button>
           </div>
         )}

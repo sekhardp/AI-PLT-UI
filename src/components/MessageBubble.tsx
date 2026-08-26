@@ -1,4 +1,5 @@
-import { Bot, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Sparkles, User, ThumbsUp, ThumbsDown } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import type { Message } from '../types';
 
 interface MessageBubbleProps {
@@ -9,39 +10,50 @@ interface MessageBubbleProps {
 export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
   const isUser = msg.role === 'user';
   const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  // Render simple markdown (bold, italic, blockquote)
-  const renderContent = (text: string) => {
-    const lines = text.split('\n');
-    return lines.map((line, i) => {
-      if (line.startsWith('> ')) {
-        return <blockquote key={i}>{line.slice(2)}</blockquote>;
-      }
-      const formatted = line
-        .split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
-        .map((part, j) => {
-          if (part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={j}>{part.slice(2, -2)}</strong>;
-          }
-          if (part.startsWith('*') && part.endsWith('*')) {
-            return <em key={j}>{part.slice(1, -1)}</em>;
-          }
-          return part;
-        });
-      return <span key={i}>{formatted}{i < lines.length - 1 && <br />}</span>;
-    });
-  };
+  const isThinking = !isUser && msg.isStreaming && !msg.content.trim();
 
   return (
-    <div className={`message-row ${isUser ? 'user' : ''}`} role="article" aria-label={`${msg.role} message`}>
-      <div className={`message-avatar ${isUser ? 'user-avatar' : 'ai-avatar'}`} aria-hidden="true">
-        {isUser ? 'U' : <Bot size={14} />}
-      </div>
+    <div className={`message-row ${isUser ? 'user' : 'assistant'}`} role="article" aria-label={`${msg.role} message`}>
       <div className="message-content">
-        <div className={`message-bubble ${isUser ? 'user-bubble' : 'ai-bubble'}`}>
-          {renderContent(msg.content)}
-          {msg.isStreaming && <span className="streaming-cursor" aria-hidden="true" />}
-        </div>
+        {!isUser && (
+          <div className="message-author-header">
+            <span className="author-badge ai-badge">
+              <span className="sparkle-pulse"><Sparkles size={13} /></span>
+              <span className="author-name">AI Orchestrator</span>
+            </span>
+            {msg.isStreaming && (
+              <span className="author-status-pill">Executing</span>
+            )}
+          </div>
+        )}
+        {isUser && (
+          <div className="message-author-header user-header">
+            <span className="author-badge user-badge">
+              <User size={12} />
+              <span className="author-name">You</span>
+            </span>
+          </div>
+        )}
+        {isThinking ? (
+          <div className="agent-thinking-card" aria-live="polite">
+            <div className="agent-thinking-pulse">
+              <span className="pulse-wave wave-1" />
+              <span className="pulse-wave wave-2" />
+              <span className="pulse-wave wave-3" />
+            </div>
+            <div className="agent-thinking-info">
+              <span className="thinking-primary-text">Orchestrator is executing…</span>
+              <span className="thinking-secondary-text">Routing query to specialized agents & synthesizing response</span>
+            </div>
+          </div>
+        ) : (
+          <div className={`message-bubble ${isUser ? 'user-bubble' : 'ai-bubble'}`}>
+            <div className="markdown-content">
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
+            </div>
+            {msg.isStreaming && <span className="streaming-cursor" aria-hidden="true" />}
+          </div>
+        )}
         <div className="message-meta">
           <span className="message-time">{time}</span>
           {!isUser && !msg.isStreaming && (

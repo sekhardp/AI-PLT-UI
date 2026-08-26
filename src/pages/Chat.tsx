@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Send, Paperclip, CheckCircle, X, Network, Bot } from 'lucide-react';
+import { Send, Paperclip, CheckCircle, X, Network, Loader2 } from 'lucide-react';
 import type { Message, UploadedFile } from '../types';
 import { streamChat, sendFeedback, fetchSession } from '../api';
 import { MessageBubble } from '../components/MessageBubble';
@@ -40,20 +40,6 @@ function WelcomeScreen({ onPrompt }: WelcomeScreenProps) {
             {s}
           </button>
         ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Typing Indicator ────────────────────────────────────────────────────────
-function TypingIndicator() {
-  return (
-    <div className="message-row" aria-label="AI is typing">
-      <div className="message-avatar ai-avatar" aria-hidden="true"><Bot size={14} /></div>
-      <div className="typing-indicator" aria-live="polite" aria-label="Generating response">
-        <div className="typing-dot" />
-        <div className="typing-dot" />
-        <div className="typing-dot" />
       </div>
     </div>
   );
@@ -216,10 +202,6 @@ export function Chat({
             {messages.map((msg) => (
               <MessageBubble key={msg.id} msg={msg} onFeedback={handleFeedback} />
             ))}
-
-            {isStreaming && messages[messages.length - 1]?.content === '' && (
-              <TypingIndicator />
-            )}
           </>
         )}
         <div ref={chatBottomRef} aria-hidden="true" />
@@ -289,20 +271,25 @@ export function Chat({
             id="chat-input"
           />
           <button
-            className="send-btn"
+            className={`send-btn ${isStreaming ? 'executing' : ''}`}
             onClick={() => submitMessage(input)}
             disabled={!input.trim() || isStreaming || isCreditsExhausted}
-            aria-label="Send message"
+            aria-label={isStreaming ? 'Agent is executing' : 'Send message'}
             id="btn-send"
           >
-            <Send size={16} />
+            {isStreaming ? <Loader2 size={16} className="btn-spinner" /> : <Send size={16} />}
           </button>
         </div>
 
         <div className="input-hints">
           <span className="input-hint-text">Enter to send · Shift+Enter for newline</span>
-          <span className="input-hint-text" aria-live="polite">
-            {isStreaming ? '⚡ Generating...' : ''}
+          <span className="input-hint-text executing-status-text" aria-live="polite">
+            {isStreaming && (
+              <span className="executing-indicator-chip">
+                <span className="executing-dot" />
+                Agent is executing…
+              </span>
+            )}
           </span>
         </div>
       </div>
