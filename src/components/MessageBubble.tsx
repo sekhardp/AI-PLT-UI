@@ -21,6 +21,26 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
               <span className="sparkle-pulse"><Sparkles size={13} /></span>
               <span className="author-name">AI Orchestrator</span>
             </span>
+            {msg.routed_to === 'ai_router' && (
+              <span
+                className="author-status-pill"
+                style={{
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  color: '#3b82f6',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                }}
+              >
+                <Sparkles size={11} className="spin-slow" />
+                AI Router
+              </span>
+            )}
             {msg.routed_to === 'local' && (
               <span
                 className="author-status-pill"
@@ -83,14 +103,18 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
             </div>
             <div className="agent-thinking-info">
               <span className="thinking-primary-text">
-                {msg.routed_to === 'local'
+                {msg.routed_to === 'ai_router'
+                  ? 'AI Router is analyzing query complexity…'
+                  : msg.routed_to === 'local'
                   ? `Executing on Local LLM (${msg.model ? msg.model.split('/').pop() : 'Qwen 2.5 7B'})…`
                   : msg.routed_to === 'frontier'
                   ? `Executing on Frontier Model (${msg.model ? msg.model.split('/').pop() : 'Gemini 2.5 Flash'})…`
                   : 'Orchestrator is executing…'}
               </span>
               <span className="thinking-secondary-text">
-                {msg.routed_to === 'local'
+                {msg.routed_to === 'ai_router'
+                  ? 'Evaluating query complexity & tool requirements to select model tier'
+                  : msg.routed_to === 'local'
                   ? 'Fast low-latency inference on dedicated Compute Engine GPU'
                   : msg.routed_to === 'frontier'
                   ? 'Deep analytical reasoning synthesized on Vertex AI'

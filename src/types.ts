@@ -5,7 +5,8 @@ export interface Message {
   timestamp: string;
   isStreaming?: boolean;
   feedback?: 1 | -1 | null;
-  routed_to?: 'local' | 'frontier' | string;
+  routed_to?: 'local' | 'frontier' | 'ai_router' | string;
+  stage?: 'ai_router' | 'executing' | string;
   model?: string;
   complexity_score?: number;
 }

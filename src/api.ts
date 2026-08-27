@@ -6,8 +6,9 @@ const getBase = () => getConfig().apiBaseUrl;
 
 
 export interface RoutingMeta {
-  routed_to?: 'local' | 'frontier' | string;
+  routed_to?: 'local' | 'frontier' | 'ai_router' | string;
   model?: string;
+  stage?: string;
   complexity_score?: number;
 }
 
@@ -39,10 +40,11 @@ export async function streamChat(
       if (!raw) continue;
       try {
         const parsed = JSON.parse(raw);
-        if (parsed.routed_to || parsed.model) {
+        if (parsed.routed_to || parsed.model || parsed.stage || parsed.type === 'routing_init' || parsed.type === 'routing_decision') {
           routingMeta = {
             routed_to: parsed.routed_to || routingMeta.routed_to,
             model: parsed.model || routingMeta.model,
+            stage: parsed.stage || routingMeta.stage,
             complexity_score: parsed.complexity_score ?? routingMeta.complexity_score,
           };
           if (onMeta) {
