@@ -1,4 +1,4 @@
-import { Sparkles, User, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Sparkles, User, ThumbsUp, ThumbsDown, Zap, Cpu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Message } from '../types';
 
@@ -21,7 +21,47 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
               <span className="sparkle-pulse"><Sparkles size={13} /></span>
               <span className="author-name">AI Orchestrator</span>
             </span>
-            {msg.isStreaming && (
+            {msg.routed_to === 'local' && (
+              <span
+                className="author-status-pill"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  color: '#10b981',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                }}
+              >
+                <Zap size={11} />
+                Local LLM ({msg.model ? msg.model.split('/').pop() : 'Qwen 2.5 7B'})
+              </span>
+            )}
+            {msg.routed_to === 'frontier' && (
+              <span
+                className="author-status-pill"
+                style={{
+                  background: 'rgba(99, 102, 241, 0.12)',
+                  color: '#818cf8',
+                  border: '1px solid rgba(99, 102, 241, 0.3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                }}
+              >
+                <Cpu size={11} />
+                Frontier ({msg.model ? msg.model.split('/').pop() : 'Gemini 2.5 Flash'})
+              </span>
+            )}
+            {msg.isStreaming && !msg.routed_to && (
               <span className="author-status-pill">Executing</span>
             )}
           </div>
@@ -42,8 +82,20 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
               <span className="pulse-wave wave-3" />
             </div>
             <div className="agent-thinking-info">
-              <span className="thinking-primary-text">Orchestrator is executing…</span>
-              <span className="thinking-secondary-text">Routing query to specialized agents & synthesizing response</span>
+              <span className="thinking-primary-text">
+                {msg.routed_to === 'local'
+                  ? `Executing on Local LLM (${msg.model ? msg.model.split('/').pop() : 'Qwen 2.5 7B'})…`
+                  : msg.routed_to === 'frontier'
+                  ? `Executing on Frontier Model (${msg.model ? msg.model.split('/').pop() : 'Gemini 2.5 Flash'})…`
+                  : 'Orchestrator is executing…'}
+              </span>
+              <span className="thinking-secondary-text">
+                {msg.routed_to === 'local'
+                  ? 'Fast low-latency inference on dedicated Compute Engine GPU'
+                  : msg.routed_to === 'frontier'
+                  ? 'Deep analytical reasoning synthesized on Vertex AI'
+                  : 'Routing query to specialized agents & synthesizing response'}
+              </span>
             </div>
           </div>
         ) : (

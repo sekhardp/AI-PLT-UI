@@ -5,6 +5,9 @@ export interface Message {
   timestamp: string;
   isStreaming?: boolean;
   feedback?: 1 | -1 | null;
+  routed_to?: 'local' | 'frontier' | string;
+  model?: string;
+  complexity_score?: number;
 }
 
 export interface Session {

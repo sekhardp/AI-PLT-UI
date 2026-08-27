@@ -154,18 +154,42 @@ export function Chat({
             )
           );
         },
-        async () => {
+        async (_sid, meta) => {
           let finalTokens = 0;
           setMessages((prev) => {
             const finalMsg = prev.find((m) => m.id === streamingMsgId);
             const generatedText = finalMsg ? finalMsg.content : '';
             finalTokens = Math.max(1, Math.ceil(generatedText.length / 4));
-            return prev.map((m) => (m.id === streamingMsgId ? { ...m, isStreaming: false } : m));
+            return prev.map((m) =>
+              m.id === streamingMsgId
+                ? {
+                    ...m,
+                    isStreaming: false,
+                    routed_to: meta?.routed_to || m.routed_to,
+                    model: meta?.model || m.model,
+                    complexity_score: meta?.complexity_score ?? m.complexity_score,
+                  }
+                : m
+            );
           });
           
           deductCredit(1, finalTokens);
           setIsStreaming(false);
           await refreshSessions();
+        },
+        (meta) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === streamingMsgId
+                ? {
+                    ...m,
+                    routed_to: meta.routed_to || m.routed_to,
+                    model: meta.model || m.model,
+                    complexity_score: meta.complexity_score ?? m.complexity_score,
+                  }
+                : m
+            )
+          );
         }
       );
     } catch {

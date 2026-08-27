@@ -5,11 +5,18 @@ const getBase = () => getConfig().apiBaseUrl;
 
 
 
+export interface RoutingMeta {
+  routed_to?: 'local' | 'frontier' | string;
+  model?: string;
+  complexity_score?: number;
+}
+
 export async function streamChat(
   prompt: string,
   sessionId: string,
   onToken: (token: string) => void,
-  onDone: (sid: string) => void
+  onDone: (sid: string, meta?: RoutingMeta) => void,
+  onMeta?: (meta: RoutingMeta) => void
 ) {
   const params = new URLSearchParams({ prompt, session_id: sessionId });
   const res = await fetch(`${getBase()}/chat/stream?${params}`);
@@ -18,6 +25,7 @@ export async function streamChat(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  let routingMeta: RoutingMeta = {};
 
   while (true) {
     const { done, value } = await reader.read();
@@ -31,9 +39,19 @@ export async function streamChat(
       if (!raw) continue;
       try {
         const parsed = JSON.parse(raw);
+        if (parsed.routed_to || parsed.model) {
+          routingMeta = {
+            routed_to: parsed.routed_to || routingMeta.routed_to,
+            model: parsed.model || routingMeta.model,
+            complexity_score: parsed.complexity_score ?? routingMeta.complexity_score,
+          };
+          if (onMeta) {
+            onMeta(routingMeta);
+          }
+        }
         if (parsed.done) {
-          onDone(parsed.session_id);
-        } else if (parsed.token !== undefined) {
+          onDone(parsed.session_id, routingMeta);
+        } else if (parsed.token !== undefined && parsed.token !== '') {
           onToken(parsed.token);
         }
       } catch { /* ignore malformed */ }
