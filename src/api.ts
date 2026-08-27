@@ -168,3 +168,51 @@ export async function deleteDocument(docId: string, userId: string = "default_us
   });
   if (!res.ok) throw new Error("Failed to delete document");
 }
+
+// ─── Cloud SQL Users & Credit Bank APIs ──────────────────────────────────────
+export interface DbUser {
+  id: number;
+  username: string;
+  email: string;
+  role: "user" | "admin";
+  credits: number;
+  tokensUsed: number;
+  createdAt?: string;
+}
+
+export async function apiLoginUser(email: string, username?: string, password?: string): Promise<DbUser> {
+  const res = await fetch(`${getBase()}/users/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, username, password }),
+  });
+  if (!res.ok) throw new Error("Login failed");
+  const data = await res.json();
+  return data.user;
+}
+
+export async function apiFetchUsers(): Promise<DbUser[]> {
+  const res = await fetch(`${getBase()}/users`);
+  if (!res.ok) throw new Error("Failed to fetch users");
+  const data = await res.json();
+  return data.users;
+}
+
+export async function apiUpdateUserCredits(email: string, credits: number): Promise<{ email: string; credits: number; tokensUsed: number }> {
+  const res = await fetch(`${getBase()}/users/${encodeURIComponent(email)}/credits`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credits }),
+  });
+  if (!res.ok) throw new Error("Failed to update credits");
+  const data = await res.json();
+  return data.user;
+}
+
+export async function apiDeductUserCredit(email: string, amount: number = 1, tokens: number = 0): Promise<void> {
+  await fetch(`${getBase()}/users/${encodeURIComponent(email)}/deduct`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, tokens }),
+  }).catch(console.warn);
+}
