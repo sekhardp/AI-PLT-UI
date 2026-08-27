@@ -7,9 +7,11 @@ import {
   CheckCircle, 
   AlertCircle, 
   Loader2, 
-  HardDrive
+  HardDrive,
+  RefreshCw
 } from 'lucide-react';
 import { fetchDocuments, uploadDocument, deleteDocument, type UserDocument, type QuotaInfo } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 interface DocumentManagerModalProps {
   isOpen: boolean;
@@ -18,6 +20,8 @@ interface DocumentManagerModalProps {
 }
 
 export function DocumentManagerModal({ isOpen, onClose, onDocumentsUpdated }: DocumentManagerModalProps) {
+  const { user } = useAuth();
+  const effectiveUserId = user?.email || "default_user";
   const [documents, setDocuments] = useState<UserDocument[]>([]);
   const [quota, setQuota] = useState<QuotaInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,7 +34,7 @@ export function DocumentManagerModal({ isOpen, onClose, onDocumentsUpdated }: Do
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchDocuments();
+      const data = await fetchDocuments(effectiveUserId);
       setDocuments(data.documents || []);
       setQuota(data.quota || null);
       if (onDocumentsUpdated) {
@@ -60,7 +64,7 @@ export function DocumentManagerModal({ isOpen, onClose, onDocumentsUpdated }: Do
 
     for (const file of fileList) {
       try {
-        await uploadDocument(file);
+        await uploadDocument(file, effectiveUserId);
       } catch (err: any) {
         setError(err.message || `Failed to upload ${file.name}`);
         break;
@@ -77,7 +81,7 @@ export function DocumentManagerModal({ isOpen, onClose, onDocumentsUpdated }: Do
     }
     try {
       setError(null);
-      await deleteDocument(docId);
+      await deleteDocument(docId, effectiveUserId);
       await loadDocuments();
     } catch (err: any) {
       setError(err.message || `Failed to delete ${filename}`);
@@ -133,7 +137,7 @@ export function DocumentManagerModal({ isOpen, onClose, onDocumentsUpdated }: Do
           </div>
         )}
 
-        {/* Error Alert */}
+        {/* Error Alert with Retry */}
         {error && (
           <div style={{
             padding: '10px 14px',
@@ -145,10 +149,31 @@ export function DocumentManagerModal({ isOpen, onClose, onDocumentsUpdated }: Do
             marginBottom: '14px',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
             gap: '8px'
           }}>
-            <AlertCircle size={16} />
-            <span>{error}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertCircle size={16} />
+              <span>{error}</span>
+            </div>
+            <button
+              onClick={loadDocuments}
+              style={{
+                background: 'none',
+                border: '1px solid var(--danger)',
+                color: 'var(--danger)',
+                padding: '2px 8px',
+                borderRadius: 'var(--r-sm)',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <RefreshCw size={12} /> Retry
+            </button>
           </div>
         )}
 
