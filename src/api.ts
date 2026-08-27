@@ -17,9 +17,13 @@ export async function streamChat(
   sessionId: string,
   onToken: (token: string) => void,
   onDone: (sid: string, meta?: RoutingMeta) => void,
-  onMeta?: (meta: RoutingMeta) => void
+  onMeta?: (meta: RoutingMeta) => void,
+  documentIds?: string[]
 ) {
   const params = new URLSearchParams({ prompt, session_id: sessionId });
+  if (documentIds && documentIds.length > 0) {
+    params.set("document_ids", documentIds.join(","));
+  }
   const res = await fetch(`${getBase()}/chat/stream?${params}`);
   if (!res.body) throw new Error('No response body');
 
@@ -115,4 +119,52 @@ export async function uploadFile(file: File, onProgress: (pct: number) => void):
     xhr.open('POST', `${getBase()}/upload`);
     xhr.send(fd);
   });
+}
+
+export interface UserDocument {
+  id: string;
+  filename: string;
+  file_size_bytes: number;
+  file_size_mb: number;
+  mime_type: string;
+  status: "indexing" | "ready" | "failed";
+  error_message?: string;
+  created_at: string;
+}
+
+export interface QuotaInfo {
+  total_documents: number;
+  max_documents: number;
+  total_bytes: number;
+  total_mb: number;
+  max_mb: number;
+  remaining_mb: number;
+}
+
+export async function fetchDocuments(userId: string = "default_user"): Promise<{ documents: UserDocument[]; quota: QuotaInfo }> {
+  const res = await fetch(`${getBase()}/documents?user_id=${encodeURIComponent(userId)}`);
+  if (!res.ok) throw new Error("Failed to fetch documents");
+  return await res.json();
+}
+
+export async function uploadDocument(file: File, userId: string = "default_user"): Promise<any> {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("user_id", userId);
+  const res = await fetch(`${getBase()}/documents/upload`, {
+    method: "POST",
+    body: fd,
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || "Upload failed");
+  }
+  return await res.json();
+}
+
+export async function deleteDocument(docId: string, userId: string = "default_user"): Promise<void> {
+  const res = await fetch(`${getBase()}/documents/${docId}?user_id=${encodeURIComponent(userId)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete document");
 }

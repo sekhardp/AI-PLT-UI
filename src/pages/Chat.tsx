@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Send, Paperclip, CheckCircle, X, Network, Loader2 } from 'lucide-react';
-import type { Message, UploadedFile } from '../types';
-import { streamChat, sendFeedback, fetchSession } from '../api';
+import { Send, Paperclip, X, Network, Loader2, FileText, HardDrive } from 'lucide-react';
+import type { Message } from '../types';
+import { streamChat, sendFeedback, fetchSession, fetchDocuments, type UserDocument } from '../api';
 import { MessageBubble } from '../components/MessageBubble';
 import { useAuth } from '../context/AuthContext';
 
@@ -50,8 +50,6 @@ interface ChatProps {
   activeSessionId: string;
   onSessionCreated: (id: string) => void;
   refreshSessions: () => Promise<void>;
-  pendingFiles: UploadedFile[];
-  setPendingFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>;
   onShowUpload: () => void;
 }
 
@@ -59,8 +57,6 @@ export function Chat({
   activeSessionId,
   onSessionCreated,
   refreshSessions,
-  pendingFiles,
-  setPendingFiles,
   onShowUpload,
 }: ChatProps) {
   const { user, deductCredit } = useAuth();
@@ -69,6 +65,20 @@ export function Chat({
   const [isStreaming, setIsStreaming] = useState(false);
 
   const isCreditsExhausted = !!(user && user.role !== 'admin' && user.credits <= 0);
+  const [availableDocs, setAvailableDocs] = useState<UserDocument[]>([]);
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [showDocPicker, setShowDocPicker] = useState(false);
+
+  const refreshAvailableDocs = useCallback(async () => {
+    try {
+      const res = await fetchDocuments();
+      setAvailableDocs(res.documents || []);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    refreshAvailableDocs();
+  }, [refreshAvailableDocs]);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -190,7 +200,8 @@ export function Chat({
                 : m
             )
           );
-        }
+        },
+        selectedDocIds
       );
     } catch {
       setMessages((prev) =>
@@ -222,7 +233,7 @@ export function Chat({
     await sendFeedback(activeSessionId, rating).catch(console.warn);
   }, [activeSessionId]);
 
-  const uploadedCount = pendingFiles.filter((f) => f.done).length;
+  
 
   return (
     <>
@@ -261,29 +272,101 @@ export function Chat({
           </div>
         )}
 
-        {uploadedCount > 0 && (
-          <div className="upload-files-row">
-            {pendingFiles
-              .filter((f) => f.done)
-              .map((f) => (
-                <div key={f.id} className="file-chip">
-                  <CheckCircle size={12} color="var(--success)" />
-                  {f.file.name}
-                  <button
-                    onClick={() => setPendingFiles((prev) => prev.filter((p) => p.id !== f.id))}
-                    aria-label={`Remove ${f.file.name}`}
-                  >
-                    <X size={11} />
-                  </button>
-                </div>
-              ))}
+        {/* Attached RAG Document Pills */}
+        {selectedDocIds.length > 0 && (
+          <div className="attached-docs-row" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+            {availableDocs.filter(d => selectedDocIds.includes(d.id)).map(doc => (
+              <div key={doc.id} className="file-chip" style={{ background: "rgba(19, 62, 66, 0.08)", border: "1px solid rgba(19, 62, 66, 0.2)", borderRadius: "var(--r-full)", padding: "3px 10px", fontSize: "0.78rem", display: "flex", alignItems: "center", gap: "6px", color: "var(--text-primary-dark)", fontWeight: 600 }}>
+                <FileText size={12} color="var(--accent)" />
+                <span>{doc.filename}</span>
+                <button onClick={() => setSelectedDocIds(prev => prev.filter(id => id !== doc.id))} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", color: "var(--text-secondary)" }}>
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
-        <div className="input-wrapper">
+        <div className="input-wrapper" style={{ position: "relative" }}>
+          {/* Document Context Attachment Popover */}
+          {showDocPicker && (
+            <div className="doc-picker-popover" style={{
+              position: "absolute",
+              bottom: "100%",
+              left: "0",
+              marginBottom: "8px",
+              background: "var(--bg-base)",
+              border: "1px solid var(--glass-border)",
+              borderRadius: "var(--r-md)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+              padding: "12px",
+              minWidth: "280px",
+              maxWidth: "360px",
+              zIndex: 50,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", paddingBottom: "6px", borderBottom: "1px solid var(--glass-border)" }}>
+                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-primary-dark)" }}>Attach Context Documents</span>
+                <button onClick={() => setShowDocPicker(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
+                  <X size={14} />
+                </button>
+              </div>
+
+              {availableDocs.length === 0 ? (
+                <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", padding: "8px 0", textAlign: "center" }}>
+                  No indexed documents found.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "160px", overflowY: "auto" }}>
+                  {availableDocs.map(d => {
+                    const isSelected = selectedDocIds.includes(d.id);
+                    return (
+                      <label key={d.id} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.78rem", padding: "4px 6px", borderRadius: "var(--r-sm)", cursor: "pointer", background: isSelected ? "rgba(19, 62, 66, 0.06)" : "transparent" }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            if (isSelected) {
+                              setSelectedDocIds(prev => prev.filter(id => id !== d.id));
+                            } else {
+                              setSelectedDocIds(prev => [...prev, d.id]);
+                            }
+                          }}
+                        />
+                        <FileText size={14} color="var(--accent)" style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-primary-dark)" }}>{d.filename}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              <button
+                onClick={() => { setShowDocPicker(false); onShowUpload(); }}
+                style={{
+                  width: "100%",
+                  marginTop: "10px",
+                  padding: "6px 10px",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  color: "var(--accent)",
+                  background: "rgba(19, 62, 66, 0.05)",
+                  border: "1px solid rgba(19, 62, 66, 0.15)",
+                  borderRadius: "var(--r-sm)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px"
+                }}
+              >
+                <HardDrive size={13} /> Manage / Upload Documents
+              </button>
+            </div>
+          )}
+
           <button
             className="upload-btn"
-            onClick={onShowUpload}
+            onClick={() => { setShowDocPicker(!showDocPicker); refreshAvailableDocs(); }}
             aria-label="Attach file"
             id="btn-attach-file"
             disabled={isCreditsExhausted}

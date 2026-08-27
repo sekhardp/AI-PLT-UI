@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Cpu, Upload, Network, LogOut, User as UserIcon, ShieldAlert } from 'lucide-react';
+import { Plus, Trash2, Cpu, Network, HardDrive, LogOut, User as UserIcon, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Session } from '../types';
 
@@ -135,7 +135,7 @@ export function Sidebar({
           <Cpu size={15} /> Agent Registry
         </button>
         <button className="sidebar-nav-btn" onClick={onShowUpload} id="btn-show-upload">
-          <Upload size={15} /> File Upload
+          <HardDrive size={15} /> Knowledge Base
         </button>
 
         <hr style={{ border: '0', borderTop: '1px solid var(--glass-border)', margin: '8px 0' }} />
