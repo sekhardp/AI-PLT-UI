@@ -181,7 +181,8 @@ function MainLayout({
 }
 
 // ─── Main Application Shell ──────────────────────────────────────────────────
-export default function App() {
+function AppContent() {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState('');
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -195,9 +196,9 @@ export default function App() {
   }, []);
 
   const refreshSessions = useCallback(async () => {
-    const s = await fetchSessions().catch(() => []);
+    const s = await fetchSessions(user?.email).catch(() => []);
     setSessions(s);
-  }, []);
+  }, [user?.email]);
 
   const startNewChat = useCallback(() => {
     setActiveSessionId('');
@@ -208,16 +209,15 @@ export default function App() {
   }, []);
 
   const deleteSession = useCallback(async (sid: string) => {
-    await apiDeleteSession(sid).catch(console.warn);
+    await apiDeleteSession(sid, user?.email).catch(console.warn);
     if (sid === activeSessionId) startNewChat();
     await refreshSessions();
-  }, [activeSessionId, refreshSessions, startNewChat]);
+  }, [activeSessionId, refreshSessions, startNewChat, user?.email]);
 
 
 
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
@@ -259,6 +259,13 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
     </AuthProvider>
   );
 }

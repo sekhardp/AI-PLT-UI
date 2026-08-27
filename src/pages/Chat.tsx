@@ -71,7 +71,7 @@ export function Chat({
 
   const refreshAvailableDocs = useCallback(async () => {
     try {
-      const res = await fetchDocuments();
+      const res = await fetchDocuments(user?.email || "default_user");
       setAvailableDocs(res.documents || []);
     } catch {}
   }, []);
@@ -97,7 +97,7 @@ export function Chat({
         return;
       }
       lastLoadedSessionIdRef.current = activeSessionId;
-      fetchSession(activeSessionId)
+      fetchSession(activeSessionId, user?.email)
         .then((msgs) => {
           setMessages(
             msgs.map((m) => ({
@@ -201,7 +201,8 @@ export function Chat({
             )
           );
         },
-        selectedDocIds
+        selectedDocIds,
+        user?.email
       );
     } catch {
       setMessages((prev) =>
@@ -230,7 +231,7 @@ export function Chat({
     setMessages((prev) =>
       prev.map((m) => (m.id === msgId ? { ...m, feedback: rating } : m))
     );
-    await sendFeedback(activeSessionId, rating).catch(console.warn);
+    await sendFeedback(activeSessionId, rating, undefined, user?.email).catch(console.warn);
   }, [activeSessionId]);
 
   

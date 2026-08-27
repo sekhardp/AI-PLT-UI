@@ -18,11 +18,15 @@ export async function streamChat(
   onToken: (token: string) => void,
   onDone: (sid: string, meta?: RoutingMeta) => void,
   onMeta?: (meta: RoutingMeta) => void,
-  documentIds?: string[]
+  documentIds?: string[],
+  userId?: string
 ) {
   const params = new URLSearchParams({ prompt, session_id: sessionId });
   if (documentIds && documentIds.length > 0) {
     params.set("document_ids", documentIds.join(","));
+  }
+  if (userId) {
+    params.set("user_id", userId);
   }
   const res = await fetch(`${getBase()}/chat/stream?${params}`);
   if (!res.body) throw new Error('No response body');
@@ -65,28 +69,31 @@ export async function streamChat(
   }
 }
 
-export async function sendFeedback(sessionId: string, rating: 1 | -1, comment?: string) {
+export async function sendFeedback(sessionId: string, rating: 1 | -1, comment?: string, userId?: string) {
   await fetch(`${getBase()}/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: sessionId, rating, comment }),
+    body: JSON.stringify({ session_id: sessionId, rating, comment, user_id: userId }),
   });
 }
 
-export async function fetchSessions() {
-  const res = await fetch(`${getBase()}/history`);
+export async function fetchSessions(userId?: string) {
+  const url = userId ? `${getBase()}/history?user_id=${encodeURIComponent(userId)}` : `${getBase()}/history`;
+  const res = await fetch(url);
   const data = await res.json();
   return data.sessions as Array<{ session_id: string; message_count: number; last_message: string; created_at: string }>;
 }
 
-export async function fetchSession(sessionId: string) {
-  const res = await fetch(`${getBase()}/history/${sessionId}`);
+export async function fetchSession(sessionId: string, userId?: string) {
+  const url = userId ? `${getBase()}/history/${sessionId}?user_id=${encodeURIComponent(userId)}` : `${getBase()}/history/${sessionId}`;
+  const res = await fetch(url);
   const data = await res.json();
   return data.messages as Array<{ role: string; content: string; timestamp: string }>;
 }
 
-export async function deleteSession(sessionId: string) {
-  await fetch(`${getBase()}/history/${sessionId}`, { method: 'DELETE' });
+export async function deleteSession(sessionId: string, userId?: string) {
+  const url = userId ? `${getBase()}/history/${sessionId}?user_id=${encodeURIComponent(userId)}` : `${getBase()}/history/${sessionId}`;
+  await fetch(url, { method: 'DELETE' });
 }
 
 export async function fetchAgents() {
