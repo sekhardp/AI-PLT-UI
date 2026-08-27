@@ -196,7 +196,7 @@ function AppContent() {
   }, []);
 
   const refreshSessions = useCallback(async () => {
-    const s = await fetchSessions(user?.email).catch(() => []);
+    const s = await fetchSessions(user?.id ? String(user.id) : user?.email).catch(() => []);
     setSessions(s);
   }, [user?.email]);
 
@@ -209,7 +209,7 @@ function AppContent() {
   }, []);
 
   const deleteSession = useCallback(async (sid: string) => {
-    await apiDeleteSession(sid, user?.email).catch(console.warn);
+    await apiDeleteSession(sid, user?.id ? String(user.id) : user?.email).catch(console.warn);
     if (sid === activeSessionId) startNewChat();
     await refreshSessions();
   }, [activeSessionId, refreshSessions, startNewChat, user?.email]);

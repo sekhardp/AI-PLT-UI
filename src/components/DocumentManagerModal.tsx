@@ -21,7 +21,7 @@ interface DocumentManagerModalProps {
 
 export function DocumentManagerModal({ isOpen, onClose, onDocumentsUpdated }: DocumentManagerModalProps) {
   const { user } = useAuth();
-  const effectiveUserId = user?.email || "default_user";
+  const effectiveUserId = user?.id ? String(user.id) : (user?.email || "default_user");
   const [documents, setDocuments] = useState<UserDocument[]>([]);
   const [quota, setQuota] = useState<QuotaInfo | null>(null);
   const [loading, setLoading] = useState(false);

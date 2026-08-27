@@ -8,6 +8,7 @@ import {
 } from '../api';
 
 export interface User {
+  id?: number;
   username: string;
   email: string;
   role: 'user' | 'admin';
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const dbUsers = await apiFetchUsers();
       const mapped: User[] = dbUsers.map((u: DbUser) => ({
+        id: u.id,
         username: u.username,
         email: u.email,
         role: u.role,
@@ -86,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const dbUser = await apiLoginUser(email, username, password);
       const loggedInUser: User = {
+        id: dbUser.id,
         username: dbUser.username,
         email: dbUser.email,
         role: dbUser.role,
