@@ -5,7 +5,6 @@ import {
   Activity,
   Server,
   Check,
-  RefreshCw,
   Search,
   Zap,
   CreditCard,
@@ -39,8 +38,8 @@ export function AdminPage() {
   const [docQuota, setDocQuota] = useState<QuotaInfo | null>(null);
   const [negativeFeedbacks, setNegativeFeedbacks] = useState<NegativeFeedbackItem[]>([]);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
+  const [isCheckingSystems, setIsCheckingSystems] = useState(false);
+  const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
 
   // User Filter & Search States
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,9 +57,9 @@ export function AdminPage() {
   const [successStates, setSuccessStates] = useState<Record<string, boolean>>({});
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // ─── Real-time Live Data Sync ────────────────────────────────────────────────
-  const syncLiveTelemetry = useCallback(async () => {
-    setIsRefreshing(true);
+  // ─── On-Demand Diagnostics & Health Check (No background spam) ─────────────
+  const checkSystemsDiagnostics = useCallback(async () => {
+    setIsCheckingSystems(true);
     const start = performance.now();
     try {
       const [agentsData, docsData, feedbacksData] = await Promise.all([
@@ -77,20 +76,22 @@ export function AdminPage() {
         setDocQuota(docsData.quota);
       }
       setNegativeFeedbacks(feedbacksData || []);
-      setLastSyncTime(new Date());
+      setLastCheckTime(new Date());
+      setStatusMessage({ text: `Diagnostics completed successfully (${duration}ms latency)`, type: 'success' });
+      setTimeout(() => setStatusMessage(null), 3000);
     } catch (err) {
-      console.warn('Telemetry sync warning:', err);
+      console.warn('Diagnostics warning:', err);
+      setStatusMessage({ text: 'Diagnostics check encountered an error', type: 'error' });
+      setTimeout(() => setStatusMessage(null), 3000);
     } finally {
-      setIsRefreshing(false);
+      setIsCheckingSystems(false);
     }
   }, [currentUser, refreshUsers]);
 
-  // Initial load and 30-second live polling
+  // Initial single load on mount only (zero recurring polling intervals)
   useEffect(() => {
-    syncLiveTelemetry();
-    const interval = setInterval(syncLiveTelemetry, 30000);
-    return () => clearInterval(interval);
-  }, [syncLiveTelemetry]);
+    checkSystemsDiagnostics();
+  }, [checkSystemsDiagnostics]);
 
   // ─── Live Aggregate Business Metrics ─────────────────────────────────────────
   const metrics = useMemo(() => {
@@ -883,20 +884,30 @@ export function AdminPage() {
         </div>
 
         <div className="admin-header-actions">
-          <div className="live-status-pill" title="Live Heartbeat with Backend & Cloud SQL">
+          <div className="live-status-pill" title="Health status with Backend & Cloud SQL">
             <span className="live-dot" aria-hidden="true" />
-            <span>Systems Online {latencyMs !== null ? `(${latencyMs}ms)` : ''}</span>
+            <span>
+              {isCheckingSystems
+                ? 'Running Diagnostics...'
+                : latencyMs !== null
+                ? `Systems Operational (${latencyMs}ms)`
+                : 'Systems Ready'}
+            </span>
           </div>
 
           <button
             className="refresh-btn"
-            onClick={syncLiveTelemetry}
-            disabled={isRefreshing}
-            title={`Last synced at ${lastSyncTime.toLocaleTimeString()}`}
-            id="btn-admin-refresh"
+            onClick={checkSystemsDiagnostics}
+            disabled={isCheckingSystems}
+            title={lastCheckTime ? `Last diagnostics checked at ${lastCheckTime.toLocaleTimeString()}` : 'Run on-demand system diagnostics'}
+            id="btn-check-systems"
+            style={{
+              background: isCheckingSystems ? 'rgba(10, 95, 107, 0.12)' : 'rgba(19, 62, 66, 0.06)',
+              borderColor: isCheckingSystems ? 'var(--accent)' : 'rgba(19, 62, 66, 0.14)',
+            }}
           >
-            <RefreshCw size={13} className={isRefreshing ? 'spin-icon' : ''} />
-            <span>{isRefreshing ? 'Syncing...' : 'Sync Live'}</span>
+            <Activity size={14} className={isCheckingSystems ? 'spin-icon' : ''} color="var(--accent)" />
+            <span>{isCheckingSystems ? 'Checking Systems...' : 'Check Systems'}</span>
           </button>
         </div>
       </section>
