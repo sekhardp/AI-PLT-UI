@@ -126,6 +126,18 @@ export function AdminPage() {
     };
   }, [usersList, negativeFeedbacks]);
 
+  // ─── Dynamic Service Status Checks based on live probe results ───────────────
+  const isCloudSqlConnected = usersList.length > 0;
+  const isFrontierReady = agents.some(
+    (a) => a.type === 'orchestrator' || a.name.toLowerCase().includes('orchestrator') || a.capabilities?.includes('synthesis')
+  );
+  const isLocalLlmOnline = agents.some(
+    (a) =>
+      a.name.toLowerCase().includes('local') ||
+      a.name.toLowerCase().includes('vllm') ||
+      a.capabilities?.some((c) => c.toLowerCase().includes('vllm') || c.toLowerCase().includes('local'))
+  );
+
   // ─── Filtered Users List ─────────────────────────────────────────────────────
   const filteredUsers = useMemo(() => {
     return usersList.filter((u) => {
@@ -840,10 +852,25 @@ export function AdminPage() {
           gap: 4px;
           font-size: 0.68rem;
           font-weight: 700;
-          color: #065f46;
-          background: rgba(16, 185, 129, 0.12);
           padding: 2px 7px;
           border-radius: var(--r-full);
+        }
+
+        .service-badge.online {
+          color: #065f46;
+          background: rgba(16, 185, 129, 0.12);
+        }
+
+        .service-badge.standby {
+          color: #b45309;
+          background: rgba(245, 158, 11, 0.12);
+          border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+
+        .service-badge.offline {
+          color: #b91c1c;
+          background: rgba(239, 68, 68, 0.12);
+          border: 1px solid rgba(239, 68, 68, 0.25);
         }
 
         .storage-progress-bar {
@@ -1348,21 +1375,43 @@ export function AdminPage() {
                     <div className="service-desc">User ledger, RBAC & credit balances</div>
                   </div>
                 </div>
-                <span className="service-badge">
-                  <span className="live-dot" style={{ width: 5, height: 5 }} /> Active
+                <span className={`service-badge ${isCloudSqlConnected ? 'online' : 'offline'}`}>
+                  <span
+                    className="live-dot"
+                    style={{
+                      width: 5,
+                      height: 5,
+                      background: isCloudSqlConnected ? 'var(--success)' : '#ef4444',
+                      boxShadow: isCloudSqlConnected ? '0 0 8px var(--success)' : 'none',
+                    }}
+                  />
+                  {isCloudSqlConnected ? 'Active' : 'Unreachable'}
                 </span>
               </div>
 
               <div className="service-health-item">
                 <div className="service-info">
-                  <Zap size={16} color="#10b981" />
+                  <Zap size={16} color={isLocalLlmOnline ? '#10b981' : '#b45309'} />
                   <div>
                     <div className="service-name">Local GPU vLLM Engine</div>
-                    <div className="service-desc">Qwen 2.5 7B low-latency inference</div>
+                    <div className="service-desc">
+                      {isLocalLlmOnline
+                        ? 'Qwen 2.5 7B low-latency GPU inference'
+                        : 'vLLM instance offline — Traffic routed to Frontier'}
+                    </div>
                   </div>
                 </div>
-                <span className="service-badge">
-                  <span className="live-dot" style={{ width: 5, height: 5 }} /> Online
+                <span className={`service-badge ${isLocalLlmOnline ? 'online' : 'standby'}`}>
+                  <span
+                    className="live-dot"
+                    style={{
+                      width: 5,
+                      height: 5,
+                      background: isLocalLlmOnline ? 'var(--success)' : '#f59e0b',
+                      boxShadow: isLocalLlmOnline ? '0 0 8px var(--success)' : 'none',
+                    }}
+                  />
+                  {isLocalLlmOnline ? 'Online' : 'Standby / Offline'}
                 </span>
               </div>
 
@@ -1374,8 +1423,17 @@ export function AdminPage() {
                     <div className="service-desc">Gemini 2.5 Flash on Vertex AI</div>
                   </div>
                 </div>
-                <span className="service-badge">
-                  <span className="live-dot" style={{ width: 5, height: 5 }} /> Ready
+                <span className={`service-badge ${isFrontierReady ? 'online' : 'offline'}`}>
+                  <span
+                    className="live-dot"
+                    style={{
+                      width: 5,
+                      height: 5,
+                      background: isFrontierReady ? '#818cf8' : '#ef4444',
+                      boxShadow: isFrontierReady ? '0 0 8px #818cf8' : 'none',
+                    }}
+                  />
+                  {isFrontierReady ? 'Ready' : 'Degraded'}
                 </span>
               </div>
             </div>
