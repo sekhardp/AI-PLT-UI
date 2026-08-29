@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Send, Paperclip, X, Network, Loader2, FileText, HardDrive } from 'lucide-react';
 import type { Message } from '../types';
-import { streamChat, sendFeedback, fetchSession, fetchDocuments, type UserDocument } from '../api';
+import { streamChat, sendFeedback, fetchSession, fetchDocuments, recordNegativeFeedback, type UserDocument } from '../api';
 import { MessageBubble } from '../components/MessageBubble';
 import { useAuth } from '../context/AuthContext';
 
@@ -228,11 +228,33 @@ export function Chat({
   };
 
   const handleFeedback = useCallback(async (msgId: string, rating: 1 | -1) => {
-    setMessages((prev) =>
-      prev.map((m) => (m.id === msgId ? { ...m, feedback: rating } : m))
-    );
+    setMessages((prev) => {
+      const idx = prev.findIndex((m) => m.id === msgId);
+      const targetMsg = prev[idx];
+      const prevUserMsg = idx > 0 && prev[idx - 1].role === 'user' ? prev[idx - 1] : null;
+
+      if (rating === -1 && targetMsg) {
+        recordNegativeFeedback({
+          id: uuidv4(),
+          session_id: activeSessionId || 'session_' + Date.now(),
+          user_id: user?.id ? String(user.id) : (user?.email || 'anonymous'),
+          user_email: user?.email || '',
+          username: user?.username || 'User',
+          user_prompt: prevUserMsg ? prevUserMsg.content : 'Question prompt unavailable',
+          assistant_response: targetMsg.content,
+          rating: -1,
+          model: targetMsg.model || (targetMsg.routed_to === 'local' ? 'Qwen 2.5 7B' : 'Gemini 2.5 Flash'),
+          routed_to: targetMsg.routed_to || 'local',
+          created_at: new Date().toISOString(),
+          status: 'open',
+        });
+      }
+
+      return prev.map((m) => (m.id === msgId ? { ...m, feedback: rating } : m));
+    });
+
     await sendFeedback(activeSessionId, rating, undefined, user?.id ? String(user.id) : user?.email).catch(console.warn);
-  }, [activeSessionId]);
+  }, [activeSessionId, user]);
 
   
 

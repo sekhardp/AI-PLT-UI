@@ -69,12 +69,69 @@ export async function streamChat(
   }
 }
 
+export interface NegativeFeedbackItem {
+  id: string;
+  session_id: string;
+  user_id?: string;
+  user_email?: string;
+  username?: string;
+  user_prompt: string;
+  assistant_response: string;
+  rating: number;
+  comment?: string;
+  model?: string;
+  routed_to?: string;
+  created_at: string;
+  status?: 'open' | 'reviewed' | 'resolved';
+}
+
+const NEGATIVE_FEEDBACK_KEY = 'ai_platform_negative_feedback_v1';
+
+export function getLocalNegativeFeedbacks(): NegativeFeedbackItem[] {
+  try {
+    const raw = localStorage.getItem(NEGATIVE_FEEDBACK_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+export function recordNegativeFeedback(item: NegativeFeedbackItem) {
+  try {
+    const list = getLocalNegativeFeedbacks();
+    const filtered = list.filter(f => !(f.session_id === item.session_id && f.user_prompt === item.user_prompt));
+    localStorage.setItem(NEGATIVE_FEEDBACK_KEY, JSON.stringify([item, ...filtered]));
+  } catch {}
+}
+
+export function updateNegativeFeedbackStatus(id: string, status: 'open' | 'reviewed' | 'resolved') {
+  try {
+    const list = getLocalNegativeFeedbacks();
+    const updated = list.map(item => item.id === id ? { ...item, status } : item);
+    localStorage.setItem(NEGATIVE_FEEDBACK_KEY, JSON.stringify(updated));
+  } catch {}
+}
+
+export async function fetchNegativeFeedbacks(): Promise<NegativeFeedbackItem[]> {
+  const localList = getLocalNegativeFeedbacks();
+  try {
+    const res = await fetch(`${getBase()}/feedback?rating=-1`);
+    if (res.ok) {
+      const data = await res.json();
+      const serverList = Array.isArray(data) ? data : data.feedbacks || data.items || [];
+      const combined = [...serverList, ...localList];
+      const unique = Array.from(new Map(combined.map(item => [item.session_id + (item.user_prompt || item.id), item])).values());
+      return unique;
+    }
+  } catch {}
+  return localList;
+}
+
 export async function sendFeedback(sessionId: string, rating: 1 | -1, comment?: string, userId?: string) {
   await fetch(`${getBase()}/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId, rating, comment, user_id: userId }),
-  });
+  }).catch(console.warn);
 }
 
 export async function fetchSessions(userId?: string) {

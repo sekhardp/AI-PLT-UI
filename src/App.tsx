@@ -189,16 +189,16 @@ function AppContent() {
   const [showAgents, setShowAgents] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
 
-  // Load initial data
+  // Load initial data scoped to active user
   useEffect(() => {
-    fetchSessions().then(setSessions).catch(console.warn);
+    fetchSessions(user?.id ? String(user.id) : user?.email).then(setSessions).catch(console.warn);
     fetchAgents().then(setAgents).catch(console.warn);
-  }, []);
+  }, [user?.email, user?.id]);
 
   const refreshSessions = useCallback(async () => {
     const s = await fetchSessions(user?.id ? String(user.id) : user?.email).catch(() => []);
     setSessions(s);
-  }, [user?.email]);
+  }, [user?.email, user?.id]);
 
   const startNewChat = useCallback(() => {
     setActiveSessionId('');
