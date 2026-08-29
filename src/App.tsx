@@ -11,19 +11,6 @@ import { AdminPage } from './pages/Admin';
 import type { Session, Agent } from './types';
 import { fetchSessions, fetchAgents, deleteSession as apiDeleteSession } from './api';
 
-// ─── Agent Chips ─────────────────────────────────────────────────────────────
-function AgentChips() {
-  return (
-    <div className="topbar-chips" aria-label="Active agents">
-      {['Orchestrator', 'AI Agent', 'RAG Agent'].map((name) => (
-        <div key={name} className="agent-chip">
-          <span className="dot" aria-hidden="true" /> {name}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ─── Agents Panel ─────────────────────────────────────────────────────────────
 interface AgentsPanelProps { agents: Agent[]; onClose: () => void; }
 
@@ -161,7 +148,6 @@ function MainLayout({
                 {user.role === 'admin' ? 'Admin (Unlimited)' : `${user.credits} Credits`}
               </div>
             )}
-            <AgentChips />
           </div>
         </header>
 
