@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Shield,
   Users,
@@ -57,16 +57,28 @@ export function AdminPage() {
   const [successStates, setSuccessStates] = useState<Record<string, boolean>>({});
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // ─── On-Demand Diagnostics & Health Check (No background spam) ─────────────
+  // Stable references to prevent effect re-trigger loops
+  const userRef = useRef(currentUser);
+  userRef.current = currentUser;
+
+  const refreshUsersRef = useRef(refreshUsers);
+  refreshUsersRef.current = refreshUsers;
+
+  const hasMountedRef = useRef(false);
+
+  // ─── On-Demand Diagnostics & Health Check (Zero background polling loop) ───
   const checkSystemsDiagnostics = useCallback(async () => {
     setIsCheckingSystems(true);
     const start = performance.now();
+    const activeUser = userRef.current;
+    const userId = activeUser?.id ? String(activeUser.id) : (activeUser?.email || 'default_user');
+
     try {
       const [agentsData, docsData, feedbacksData] = await Promise.all([
         fetchAgents().catch(() => []),
-        fetchDocuments(currentUser?.id ? String(currentUser.id) : (currentUser?.email || 'default_user')).catch(() => ({ documents: [], quota: null })),
+        fetchDocuments(userId).catch(() => ({ documents: [], quota: null })),
         fetchNegativeFeedbacks().catch(() => []),
-        refreshUsers().catch(() => {}),
+        refreshUsersRef.current().catch(() => {}),
       ]);
 
       const duration = Math.round(performance.now() - start);
@@ -86,10 +98,12 @@ export function AdminPage() {
     } finally {
       setIsCheckingSystems(false);
     }
-  }, [currentUser, refreshUsers]);
+  }, []);
 
-  // Initial single load on mount only (zero recurring polling intervals)
+  // Initial single load on mount only (zero recurring polling intervals and zero dependency loops)
   useEffect(() => {
+    if (hasMountedRef.current) return;
+    hasMountedRef.current = true;
     checkSystemsDiagnostics();
   }, [checkSystemsDiagnostics]);
 

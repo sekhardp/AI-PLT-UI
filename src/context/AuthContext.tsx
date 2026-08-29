@@ -54,13 +54,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credits: u.credits,
         tokensUsed: u.tokensUsed,
       }));
-      setUsersList(mapped);
 
-      // Keep current user in sync with DB balance
+      setUsersList((prev) => {
+        const isIdentical =
+          prev.length === mapped.length &&
+          prev.every(
+            (p, i) =>
+              p.email === mapped[i].email &&
+              p.credits === mapped[i].credits &&
+              p.tokensUsed === mapped[i].tokensUsed &&
+              p.role === mapped[i].role
+          );
+        return isIdentical ? prev : mapped;
+      });
+
+      // Keep current user in sync with DB balance without breaking reference equality if unchanged
       setUser((current) => {
         if (!current) return null;
         const fresh = mapped.find((u) => u.email.toLowerCase() === current.email.toLowerCase());
         if (fresh) {
+          if (
+            current.id === fresh.id &&
+            current.username === fresh.username &&
+            current.email === fresh.email &&
+            current.role === fresh.role &&
+            current.credits === fresh.credits &&
+            current.tokensUsed === fresh.tokensUsed
+          ) {
+            return current; // Retain existing object reference
+          }
           localStorage.setItem('ai_platform_user', JSON.stringify(fresh));
           return fresh;
         }
