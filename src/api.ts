@@ -10,6 +10,11 @@ export interface RoutingMeta {
   model?: string;
   stage?: string;
   complexity_score?: number;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
 }
 
 export async function streamChat(
@@ -58,6 +63,9 @@ export async function streamChat(
           if (onMeta) {
             onMeta(routingMeta);
           }
+        }
+        if (parsed.usage) {
+          routingMeta.usage = parsed.usage;
         }
         if (parsed.done) {
           onDone(parsed.session_id, routingMeta);
@@ -145,7 +153,15 @@ export async function fetchSession(sessionId: string, userId?: string) {
   const url = userId ? `${getBase()}/history/${sessionId}?user_id=${encodeURIComponent(userId)}` : `${getBase()}/history/${sessionId}`;
   const res = await fetch(url);
   const data = await res.json();
-  return data.messages as Array<{ role: string; content: string; timestamp: string }>;
+  return data.messages as Array<{
+    role: string;
+    content: string;
+    timestamp: string;
+    model?: string;
+    tokens?: number;
+    routed_to?: string;
+    complexity_score?: number;
+  }>;
 }
 
 export async function deleteSession(sessionId: string, userId?: string) {

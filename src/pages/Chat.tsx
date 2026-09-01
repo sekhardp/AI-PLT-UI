@@ -105,6 +105,9 @@ export function Chat({
               role: m.role as 'user' | 'assistant',
               content: m.content,
               timestamp: m.timestamp,
+              model: m.model,
+              routed_to: m.routed_to as any,
+              complexity_score: m.complexity_score,
             }))
           );
         })
@@ -165,11 +168,8 @@ export function Chat({
           );
         },
         async (_sid, meta) => {
-          let finalTokens = 0;
+          const finalTokens = meta?.usage?.total_tokens || ((meta?.usage?.prompt_tokens || 0) + (meta?.usage?.completion_tokens || 0)) || 0;
           setMessages((prev) => {
-            const finalMsg = prev.find((m) => m.id === streamingMsgId);
-            const generatedText = finalMsg ? finalMsg.content : '';
-            finalTokens = Math.max(1, Math.ceil(generatedText.length / 4));
             return prev.map((m) =>
               m.id === streamingMsgId
                 ? {
