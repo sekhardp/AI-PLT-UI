@@ -1183,7 +1183,195 @@ body::before {
   40%            { transform: translateY(-6px); opacity: 1; }
 }
 
-/* 14. Utilities */
+/* 14. Document Context Attachment Popover */
+.doc-picker-popover {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(19, 62, 66, 0.16);
+  border-radius: var(--r-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 14px;
+  min-width: 300px;
+  max-width: 380px;
+  z-index: 60;
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.doc-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(19, 62, 66, 0.08);
+}
+
+.doc-picker-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.doc-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.doc-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.doc-picker-item:hover {
+  background: rgba(19, 62, 66, 0.04);
+}
+
+.doc-picker-item.selected {
+  background: rgba(10, 95, 107, 0.07);
+  border-color: rgba(10, 95, 107, 0.15);
+}
+
+/* Crisp White Checkbox with Accent Checkmark */
+.doc-picker-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid rgba(19, 62, 66, 0.35);
+  border-radius: 4px;
+  background-color: #ffffff !important;
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease-in-out;
+  position: relative;
+  margin: 0;
+}
+
+.doc-picker-checkbox:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.doc-picker-checkbox:checked {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.doc-picker-checkbox:checked::after {
+  content: "";
+  width: 4px;
+  height: 8px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-bottom: 2px;
+}
+
+.doc-picker-checkbox:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.doc-picker-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary-dark);
+  font-weight: 500;
+  flex: 1;
+}
+
+.doc-picker-item.selected .doc-picker-filename {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.doc-picker-done-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--accent), #095554);
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 3px 10px var(--accent-glow);
+  transition: transform 0.15s, background-color 0.15s, box-shadow 0.15s;
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.doc-picker-done-btn:hover {
+  background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+
+.doc-picker-done-btn:active {
+  transform: translateY(0);
+}
+
+.doc-picker-manage-btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(19, 62, 66, 0.04);
+  border: 1px solid rgba(19, 62, 66, 0.12);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.doc-picker-manage-btn:hover {
+  background: rgba(19, 62, 66, 0.08);
+  border-color: var(--accent);
+}
+
+/* 15. Utilities */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1192,3 +1380,4 @@ body::before {
     transition-duration: 0.01ms !important;
   }
 }
+
