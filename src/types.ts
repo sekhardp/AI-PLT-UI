@@ -1,3 +1,8 @@
+export interface AttachedDocMeta {
+  id: string;
+  filename: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -9,6 +14,7 @@ export interface Message {
   stage?: 'ai_router' | 'executing' | string;
   model?: string;
   complexity_score?: number;
+  attachedDocs?: AttachedDocMeta[];
 }
 
 export interface Session {

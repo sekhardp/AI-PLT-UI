@@ -28,7 +28,16 @@ export async function streamChat(
 ) {
   const params = new URLSearchParams({ prompt, session_id: sessionId });
   if (documentIds && documentIds.length > 0) {
-    params.set("document_ids", documentIds.join(","));
+    const cleanDocIds = documentIds
+      .map((id) => (typeof id === 'string' ? id.trim() : String(id)))
+      .filter(Boolean);
+    if (cleanDocIds.length > 0) {
+      // Comma-separated list for string parsing: document_ids=uuid1,uuid2,uuid3
+      params.set("document_ids", cleanDocIds.join(","));
+      // Repeated parameters for FastAPI List[str] Query: ?doc_ids=uuid1&doc_ids=uuid2
+      cleanDocIds.forEach((id) => params.append("doc_ids", id));
+      cleanDocIds.forEach((id) => params.append("document_id", id));
+    }
   }
   if (userId) {
     params.set("user_id", userId);

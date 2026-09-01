@@ -130,6 +130,15 @@ export function Chat({
     if (!prompt.trim() || isStreaming || isCreditsExhausted) return;
     setInput('');
 
+    // Capture the exact attached document metadata for this message
+    const currentDocIds = [...selectedDocIds];
+    const attachedMeta = availableDocs
+      .filter((d) => currentDocIds.includes(d.id))
+      .map((d) => ({ id: d.id, filename: d.filename }));
+
+    // Reset selectedDocIds after attaching to this message
+    setSelectedDocIds([]);
+
     // If there is no active session yet, create one
     const sid = activeSessionId || uuidv4();
     if (!activeSessionId) {
@@ -142,6 +151,7 @@ export function Chat({
       role: 'user',
       content: prompt.trim(),
       timestamp: new Date().toISOString(),
+      attachedDocs: attachedMeta.length > 0 ? attachedMeta : undefined,
     };
 
     const streamingMsgId = uuidv4();
@@ -201,7 +211,7 @@ export function Chat({
             )
           );
         },
-        selectedDocIds,
+        currentDocIds,
         user?.id ? String(user.id) : user?.email
       );
     } catch {
@@ -210,7 +220,7 @@ export function Chat({
           m.id === streamingMsgId
             ? {
                 ...m,
-                content: '⚠️ Failed to connect to the API. Make sure the backend is running on port 8000.',
+                content: '⚠️ Failed to connect to the API. Make sure the backend is running.',
                 isStreaming: false,
               }
             : m
@@ -218,7 +228,7 @@ export function Chat({
       );
       setIsStreaming(false);
     }
-  }, [activeSessionId, isStreaming, isCreditsExhausted, onSessionCreated, deductCredit, refreshSessions]);
+  }, [activeSessionId, isStreaming, isCreditsExhausted, onSessionCreated, deductCredit, refreshSessions, selectedDocIds, availableDocs, user]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

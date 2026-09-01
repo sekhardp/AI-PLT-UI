@@ -1,4 +1,4 @@
-import { Sparkles, User, ThumbsUp, ThumbsDown, Zap, Cpu } from 'lucide-react';
+import { Sparkles, User, ThumbsUp, ThumbsDown, Zap, Cpu, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Message } from '../types';
 
@@ -87,11 +87,47 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
           </div>
         )}
         {isUser && (
-          <div className="message-author-header user-header">
+          <div className="message-author-header user-header" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span className="author-badge user-badge">
               <User size={12} />
               <span className="author-name">You</span>
             </span>
+            {msg.attachedDocs && msg.attachedDocs.length > 0 && (
+              <div
+                className="user-attached-docs-header"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {msg.attachedDocs.map((doc) => (
+                  <span
+                    key={doc.id}
+                    className="attached-doc-tag"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 8px',
+                      borderRadius: 'var(--r-full)',
+                      background: 'rgba(10, 95, 107, 0.08)',
+                      border: '1px solid rgba(10, 95, 107, 0.2)',
+                      fontSize: '0.68rem',
+                      fontWeight: 600,
+                      color: 'var(--accent)',
+                    }}
+                    title={`Attached context: ${doc.filename}`}
+                  >
+                    <FileText size={10} color="var(--accent)" />
+                    <span style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {doc.filename}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {isThinking ? (
