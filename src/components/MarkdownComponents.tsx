@@ -179,30 +179,26 @@ export function MarkdownTableCell({
   return <td {...props}>{children}</td>;
 }
 
-// ─── Code Block with Copy Action ──────────────────────────────────────────────
+// ─── Fenced Code Block with Toolbar & Copy Action ─────────────────────────────
 
-export function MarkdownCodeBlock({
-  _node,
-  inline,
-  className,
+export function MarkdownPreBlock({
+  node: _node,
   children,
   ...props
 }: any) {
   const [copied, setCopied] = useState(false);
-  const match = /language-(\w+)/.exec(className || '');
-  const language = match ? match[1] : '';
+  const preRef = useRef<HTMLPreElement>(null);
 
-  if (inline) {
-    return (
-      <code className={className} {...props}>
-        {children}
-      </code>
-    );
+  // Extract language from child code element if present
+  let language = '';
+  if (children && typeof children === 'object' && 'props' in children) {
+    const className = children.props?.className || '';
+    const match = /language-(\w+)/.exec(className);
+    if (match) language = match[1];
   }
 
-  const rawCode = String(children).replace(/\n$/, '');
-
   const handleCopyCode = () => {
+    const rawCode = preRef.current?.textContent || '';
     navigator.clipboard.writeText(rawCode).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -236,10 +232,8 @@ export function MarkdownCodeBlock({
           )}
         </button>
       </div>
-      <pre className="code-block-pre">
-        <code className={className} {...props}>
-          {children}
-        </code>
+      <pre ref={preRef} className="code-block-pre" {...props}>
+        {children}
       </pre>
     </div>
   );

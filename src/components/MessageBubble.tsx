@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Message } from '../types';
 import { normalizeMarkdown } from '../utils/markdownUtils';
-import { MarkdownTable, MarkdownTableCell, MarkdownCodeBlock } from './MarkdownComponents';
+import { MarkdownTable, MarkdownTableCell, MarkdownPreBlock } from './MarkdownComponents';
 
 interface MessageBubbleProps {
   msg: Message;
@@ -170,7 +170,7 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
                 components={{
                   table: MarkdownTable,
                   td: MarkdownTableCell,
-                  code: MarkdownCodeBlock,
+                  pre: MarkdownPreBlock,
                 }}
               >
                 {normalizedContent}
