@@ -1,6 +1,9 @@
 import { Sparkles, User, ThumbsUp, ThumbsDown, Zap, Cpu, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { Message } from '../types';
+import { normalizeMarkdown } from '../utils/markdownUtils';
+import { MarkdownTable, MarkdownTableCell, MarkdownCodeBlock } from './MarkdownComponents';
 
 interface MessageBubbleProps {
   msg: Message;
@@ -11,6 +14,7 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
   const isUser = msg.role === 'user';
   const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const isThinking = !isUser && msg.isStreaming && !msg.content.trim();
+  const normalizedContent = normalizeMarkdown(msg.content);
 
   return (
     <div className={`message-row ${isUser ? 'user' : 'assistant'}`} role="article" aria-label={`${msg.role} message`}>
@@ -161,7 +165,16 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
         ) : (
           <div className={`message-bubble ${isUser ? 'user-bubble' : 'ai-bubble'}`}>
             <div className="markdown-content">
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  table: MarkdownTable,
+                  td: MarkdownTableCell,
+                  code: MarkdownCodeBlock,
+                }}
+              >
+                {normalizedContent}
+              </ReactMarkdown>
             </div>
             {msg.isStreaming && <span className="streaming-cursor" aria-hidden="true" />}
           </div>
