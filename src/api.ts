@@ -301,3 +301,23 @@ export async function apiDeductUserCredit(email: string, amount: number = 1, tok
     body: JSON.stringify({ amount, tokens }),
   }).catch(console.warn);
 }
+
+// ─── Presentation Export API ────────────────────────────────────────────────
+export async function exportPresentationPptx(deck: any, filename?: string): Promise<void> {
+  const res = await fetch(`${getBase()}/presentation/export/pptx`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ deck, filename }),
+  });
+  if (!res.ok) throw new Error("Failed to export presentation");
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const cleanName = filename ? (filename.endsWith(".pptx") ? filename : `${filename}.pptx`) : `${deck.deck_title || 'presentation'}.pptx`;
+  a.download = cleanName.replace(/[\s/\\?%*:|"<>]+/g, '_');
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}

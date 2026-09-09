@@ -1,5 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Table, Copy, Check, Download, Code as CodeIcon } from 'lucide-react';
+import { SlideDeckViewer } from './SlideDeckViewer';
+import type { SlideDeck } from '../types';
 
 // ─── Table Component with Actions ───────────────────────────────────────────
 
@@ -144,7 +146,7 @@ export function MarkdownTableCell({
       );
     }
 
-    // MD5 Hash or long alphanumeric hex (e.g. d41d8cd98f00b204e9800998ecf8427e)
+    // MD5 Hash or long alphanumeric hex
     if (/^[a-f0-9]{32}$/i.test(trimmed)) {
       return (
         <td {...props}>
@@ -155,7 +157,7 @@ export function MarkdownTableCell({
       );
     }
 
-    // Timestamps (e.g. 2026-08-04 07:02:36...)
+    // Timestamps
     if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(trimmed)) {
       return (
         <td {...props}>
@@ -166,7 +168,7 @@ export function MarkdownTableCell({
       );
     }
 
-    // Numbers / Integer IDs (e.g. 5109, 0)
+    // Numbers / Integer IDs
     if (/^-?\d+$/.test(trimmed)) {
       return (
         <td {...props}>
@@ -179,7 +181,7 @@ export function MarkdownTableCell({
   return <td {...props}>{children}</td>;
 }
 
-// ─── Fenced Code Block with Toolbar & Copy Action ─────────────────────────────
+// ─── Fenced Code Block with Auto Slide Deck Renderer ─────────────────────────
 
 export function MarkdownPreBlock({
   node: _node,
@@ -189,16 +191,48 @@ export function MarkdownPreBlock({
   const [copied, setCopied] = useState(false);
   const preRef = useRef<HTMLPreElement>(null);
 
-  // Extract language from child code element if present
   let language = '';
+  let rawContent = '';
+
   if (children && typeof children === 'object' && 'props' in children) {
     const className = children.props?.className || '';
     const match = /language-(\w+)/.exec(className);
     if (match) language = match[1];
+
+    if (typeof children.props?.children === 'string') {
+      rawContent = children.props.children;
+    } else if (Array.isArray(children.props?.children)) {
+      rawContent = children.props.children.join('');
+    }
+  }
+
+  // Detect if code block is a valid SlideDeck schema
+  const detectedDeck = useMemo<SlideDeck | null>(() => {
+    if (!rawContent || (!language && !rawContent.includes('"deck_title"'))) return null;
+    try {
+      const parsed = JSON.parse(rawContent.trim());
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        typeof parsed.deck_title === 'string' &&
+        Array.isArray(parsed.slides) &&
+        parsed.slides.length > 0
+      ) {
+        return parsed as SlideDeck;
+      }
+    } catch {
+      // not a json slide deck
+    }
+    return null;
+  }, [rawContent, language]);
+
+  // If it's a valid slide deck, render the interactive SlideDeckViewer widget!
+  if (detectedDeck) {
+    return <SlideDeckViewer deck={detectedDeck} />;
   }
 
   const handleCopyCode = () => {
-    const rawCode = preRef.current?.textContent || '';
+    const rawCode = rawContent || preRef.current?.textContent || '';
     navigator.clipboard.writeText(rawCode).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);

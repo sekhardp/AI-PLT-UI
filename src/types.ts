@@ -40,3 +40,53 @@ export interface UploadedFile {
   done: boolean;
   serverFileId?: string;
 }
+
+// ─── Presentation & Slide Deck Types ──────────────────────────────────────────
+export interface KPICard {
+  label: string;
+  value: string;
+  change?: string;
+  trend?: 'up' | 'down' | 'neutral';
+}
+
+export interface ChartSeries {
+  name: string;
+  values: (number | string)[];
+}
+
+export interface ChartConfig {
+  chart_type?: 'bar' | 'horizontal_bar' | 'line' | 'pie' | 'doughnut';
+  title?: string;
+  categories: string[];
+  series: ChartSeries[];
+}
+
+export interface TableConfig {
+  headers: string[];
+  rows: (string | number)[][];
+}
+
+export interface Slide {
+  slide_number: number;
+  layout: 'title_slide' | 'kpi_grid' | 'chart_and_bullets' | 'two_column_comparison' | 'table_slide' | 'bullet_cards' | string;
+  title: string;
+  subtitle?: string;
+  bullet_points?: string[];
+  kpi_cards?: KPICard[];
+  chart?: ChartConfig;
+  table?: TableConfig;
+  left_column_title?: string;
+  left_column_bullets?: string[];
+  right_column_title?: string;
+  right_column_bullets?: string[];
+  sources?: string[];
+}
+
+export interface SlideDeck {
+  deck_title: string;
+  deck_subtitle?: string;
+  theme?: 'dark' | 'light' | 'midnight' | 'navy' | 'emerald' | string;
+  author?: string;
+  slides: Slide[];
+  sources_summary?: string[];
+}
