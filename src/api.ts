@@ -342,15 +342,21 @@ export async function exportPresentationPptx(deck: any, filename?: string): Prom
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ deck, filename }),
   });
-  if (!res.ok) throw new Error("Failed to export presentation");
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "Unknown error");
+    throw new Error(`Failed to export presentation: ${res.status} ${errorText}`);
+  }
   const blob = await res.blob();
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  const cleanName = filename ? (filename.endsWith(".pptx") ? filename : `${filename}.pptx`) : `${deck.deck_title || 'presentation'}.pptx`;
+  const rawTitle = deck.deck_title || deck.title || deck.presentation_title || 'executive_presentation';
+  const cleanName = filename ? (filename.endsWith(".pptx") ? filename : `${filename}.pptx`) : `${rawTitle}.pptx`;
   a.download = cleanName.replace(/[\s/\\?%*:|"<>]+/g, '_');
   document.body.appendChild(a);
   a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
+  setTimeout(() => {
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }, 100);
 }

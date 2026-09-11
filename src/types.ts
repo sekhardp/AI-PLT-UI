@@ -83,8 +83,10 @@ export interface Slide {
 }
 
 export interface SlideDeck {
-  deck_title: string;
+  deck_title?: string;
+  title?: string;
   deck_subtitle?: string;
+  subtitle?: string;
   theme?: 'dark' | 'light' | 'midnight' | 'navy' | 'emerald' | string;
   author?: string;
   slides: Slide[];

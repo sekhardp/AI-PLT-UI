@@ -141,12 +141,19 @@ export function SlideDeckViewer({ deck, initialSlide = 0 }: SlideDeckViewerProps
   const handleDownload = async () => {
     try {
       setIsExporting(true);
-      await exportPresentationPptx(deck);
+      const normalizedDeck = {
+        ...deck,
+        deck_title: deck.deck_title || deck.title || 'Executive Presentation',
+        deck_subtitle: deck.deck_subtitle || deck.subtitle,
+        theme: deck.theme || 'dark',
+        slides: (deck.slides || []).map((s: any) => normalizeSlideData(s)),
+      };
+      await exportPresentationPptx(normalizedDeck);
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to export PPTX:', err);
-      alert('Failed to export PPTX presentation.');
+      alert(`Failed to export PPTX presentation: ${err?.message || err}`);
     } finally {
       setIsExporting(false);
     }
@@ -197,8 +204,8 @@ export function SlideDeckViewer({ deck, initialSlide = 0 }: SlideDeckViewerProps
           >
             {exportSuccess ? (
               <>
-                <Check size={13} color="#10b981" />
-                <span style={{ color: '#10b981' }}>Downloaded!</span>
+                <Check size={13} color="var(--success)" />
+                <span style={{ color: 'var(--success)' }}>Downloaded!</span>
               </>
             ) : isExporting ? (
               <>
@@ -335,7 +342,7 @@ export function SlideDeckViewer({ deck, initialSlide = 0 }: SlideDeckViewerProps
                                   <div className="chart-bar-bars">
                                     {seriesValues.map((val, sIdx) => {
                                       const pct = Math.min(100, Math.max(8, (val / maxVal) * 100));
-                                      const colors = ['#38bdf8', '#818cf8', '#34d399', '#fbbf24'];
+                                      const colors = ['var(--accent)', 'hsl(188, 93%, 68%)', 'var(--success)', 'var(--warning)'];
                                       return (
                                         <div
                                           key={sIdx}
@@ -361,7 +368,7 @@ export function SlideDeckViewer({ deck, initialSlide = 0 }: SlideDeckViewerProps
                         {currentSlide.chart?.series && currentSlide.chart.series.length > 1 && (
                           <div className="chart-legend-row">
                             {currentSlide.chart.series.map((s, sIdx) => {
-                              const colors = ['#38bdf8', '#818cf8', '#34d399', '#fbbf24'];
+                              const colors = ['var(--accent)', 'hsl(188, 93%, 68%)', 'var(--success)', 'var(--warning)'];
                               return (
                                 <div key={sIdx} className="chart-legend-item">
                                   <span

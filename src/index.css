@@ -1669,8 +1669,8 @@ body::before {
 .slide-deck-container {
   margin: 14px 0;
   border-radius: var(--r-md, 12px);
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #133e42;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.4), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
   color: #f8fafc;
   overflow: hidden;
@@ -1684,7 +1684,7 @@ body::before {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: #090d16;
+  background: #091f21;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   gap: 12px;
 }
@@ -1700,8 +1700,8 @@ body::before {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
+  background: rgba(10, 95, 107, 0.35);
+  color: hsl(188, 93%, 84%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1725,7 +1725,7 @@ body::before {
 
 .slide-deck-subtitle {
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: rgba(241, 248, 249, 0.7);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1752,18 +1752,19 @@ body::before {
 }
 
 .slide-deck-btn.primary {
-  background: #0284c7;
-  color: #ffffff;
+  background: var(--accent);
+  color: hsl(188, 93%, 84%);
+  border: 1px solid rgba(111, 230, 238, 0.3);
 }
 
 .slide-deck-btn.primary:hover:not(:disabled) {
-  background: #0369a1;
-  box-shadow: 0 0 12px rgba(2, 132, 199, 0.4);
+  background: #084952;
+  box-shadow: 0 0 12px rgba(10, 95, 107, 0.5);
 }
 
 .slide-deck-btn.secondary {
   background: rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
+  color: rgba(241, 248, 249, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -1773,16 +1774,16 @@ body::before {
 }
 
 .slide-deck-btn.secondary.active {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(10, 95, 107, 0.4);
+  color: hsl(188, 93%, 84%);
+  border-color: rgba(111, 230, 238, 0.4);
 }
 
 .slide-canvas {
   position: relative;
   min-height: 380px;
   padding: 24px;
-  background: radial-gradient(circle at 10% 10%, rgba(30, 41, 59, 0.7), #0f172a 70%);
+  background: radial-gradient(circle at 10% 10%, #17484d, #0d282b 85%);
   display: flex;
   flex-direction: column;
 }
@@ -1810,7 +1811,7 @@ body::before {
 
 .slide-subtitle {
   font-size: 0.8rem;
-  color: #38bdf8;
+  color: hsl(188, 93%, 84%);
   margin: 4px 0 0 0;
   font-weight: 500;
 }
@@ -1824,7 +1825,7 @@ body::before {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 0.68rem;
-  color: #94a3b8;
+  color: rgba(241, 248, 249, 0.7);
   text-transform: capitalize;
 }
 
@@ -1840,7 +1841,7 @@ body::before {
   width: 48px;
   height: 4px;
   border-radius: 2px;
-  background: #38bdf8;
+  background: hsl(188, 93%, 84%);
   margin-bottom: 16px;
 }
 
@@ -1854,7 +1855,7 @@ body::before {
 
 .title-sub {
   font-size: 1.05rem;
-  color: #94a3b8;
+  color: rgba(241, 248, 249, 0.8);
   margin: 0 0 24px 0;
   line-height: 1.4;
 }
@@ -1872,15 +1873,16 @@ body::before {
   gap: 5px;
   padding: 3px 10px;
   border-radius: 12px;
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
+  background: rgba(10, 95, 107, 0.35);
+  color: hsl(188, 93%, 84%);
   font-size: 0.75rem;
   font-weight: 600;
+  border: 1px solid rgba(111, 230, 238, 0.25);
 }
 
 .title-author {
   font-size: 0.75rem;
-  color: #64748b;
+  color: rgba(241, 248, 249, 0.6);
 }
 
 /* Layout 2: KPI Grid */
@@ -1897,8 +1899,8 @@ body::before {
 }
 
 .kpi-card-box {
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(13, 40, 43, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 12px 14px;
   display: flex;
@@ -1909,7 +1911,7 @@ body::before {
 .kpi-card-label {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: rgba(241, 248, 249, 0.7);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1929,11 +1931,11 @@ body::before {
 }
 
 .kpi-card-change.up {
-  color: #34d399;
+  color: var(--success, #34d399);
 }
 
 .kpi-card-change.down {
-  color: #f87171;
+  color: var(--warning, #f87171);
 }
 
 .slide-bullets-list {
@@ -1958,7 +1960,7 @@ body::before {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #38bdf8;
+  background: hsl(188, 93%, 84%);
   margin-top: 6px;
   flex-shrink: 0;
 }
@@ -1971,8 +1973,8 @@ body::before {
 }
 
 .chart-preview-box {
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(13, 40, 43, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 14px;
   display: flex;
@@ -1987,7 +1989,7 @@ body::before {
   gap: 6px;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #38bdf8;
+  color: hsl(188, 93%, 84%);
   margin-bottom: 12px;
 }
 
@@ -2034,12 +2036,12 @@ body::before {
   top: -16px;
   font-size: 0.62rem;
   font-weight: 700;
-  color: #cbd5e1;
+  color: rgba(241, 248, 249, 0.9);
 }
 
 .chart-bar-label {
   font-size: 0.65rem;
-  color: #94a3b8;
+  color: rgba(241, 248, 249, 0.7);
   margin-top: 6px;
   text-align: center;
   white-space: nowrap;
@@ -2058,7 +2060,7 @@ body::before {
   align-items: center;
   gap: 4px;
   font-size: 0.68rem;
-  color: #cbd5e1;
+  color: rgba(241, 248, 249, 0.85);
 }
 
 .legend-dot {
@@ -2068,8 +2070,8 @@ body::before {
 }
 
 .chart-bullets-side {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(13, 40, 43, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 14px;
 }
@@ -2078,7 +2080,7 @@ body::before {
   display: block;
   font-size: 0.78rem;
   font-weight: 700;
-  color: #38bdf8;
+  color: hsl(188, 93%, 84%);
   margin-bottom: 10px;
 }
 
@@ -2090,18 +2092,18 @@ body::before {
 }
 
 .column-card {
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(13, 40, 43, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 14px;
 }
 
 .column-card.left .column-title {
-  color: #38bdf8;
+  color: hsl(188, 93%, 84%);
 }
 
 .column-card.right .column-title {
-  color: #818cf8;
+  color: #a5f3fc;
 }
 
 .column-title {
@@ -2123,8 +2125,8 @@ body::before {
 }
 
 .slide-table th {
-  background: #1e293b;
-  color: #38bdf8;
+  background: #0d282b;
+  color: hsl(188, 93%, 84%);
   text-align: left;
   padding: 8px 12px;
   font-weight: 700;
@@ -2149,8 +2151,8 @@ body::before {
 }
 
 .pillar-card {
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(13, 40, 43, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 14px;
   display: flex;
@@ -2161,7 +2163,7 @@ body::before {
 .pillar-badge {
   font-size: 0.65rem;
   font-weight: 800;
-  color: #38bdf8;
+  color: hsl(188, 93%, 84%);
   letter-spacing: 0.5px;
 }
 
@@ -2181,7 +2183,7 @@ body::before {
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 0.7rem;
-  color: #64748b;
+  color: rgba(241, 248, 249, 0.6);
 }
 
 .slide-sources {
@@ -2193,7 +2195,7 @@ body::before {
 
 .slide-counter {
   font-weight: 600;
-  color: #94a3b8;
+  color: rgba(241, 248, 249, 0.7);
 }
 
 /* Slide Navigation Bar */
@@ -2202,7 +2204,7 @@ body::before {
   align-items: center;
   justify-content: space-between;
   padding: 8px 14px;
-  background: #090d16;
+  background: #091f21;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   gap: 10px;
 }
@@ -2247,7 +2249,7 @@ body::before {
 .slide-thumb-pill {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  color: rgba(241, 248, 249, 0.7);
   padding: 3px 8px;
   border-radius: 12px;
   font-size: 0.7rem;
@@ -2265,9 +2267,9 @@ body::before {
 }
 
 .slide-thumb-pill.active {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
+  background: rgba(10, 95, 107, 0.4);
+  border-color: rgba(111, 230, 238, 0.4);
+  color: hsl(188, 93%, 84%);
   font-weight: 700;
 }
 
@@ -2282,11 +2284,11 @@ body::before {
 }
 
 .slide-deck-raw-json {
-  background: #090d16;
+  background: #091f21;
   padding: 16px;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.76rem;
-  color: #93c5fd;
+  color: hsl(188, 93%, 84%);
   overflow-x: auto;
   max-height: 400px;
   margin: 0;
