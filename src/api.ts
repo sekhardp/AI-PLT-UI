@@ -1,4 +1,5 @@
 import { getConfig } from './config';
+import type { TokenStatsResponse } from './types';
 
 /** Resolves the backend base URL at call-time from the runtime config. */
 const getBase = () => getConfig().apiBaseUrl;
@@ -24,9 +25,14 @@ export async function streamChat(
   onDone: (sid: string, meta?: RoutingMeta) => void,
   onMeta?: (meta: RoutingMeta) => void,
   documentIds?: string[],
-  userId?: string
+  userId?: string,
+  model?: string,
+  signal?: AbortSignal
 ) {
   const params = new URLSearchParams({ prompt, session_id: sessionId });
+  if (model && model.trim() && model !== 'auto') {
+    params.set("model", model.trim());
+  }
   if (documentIds && documentIds.length > 0) {
     const cleanDocIds = documentIds
       .map((id) => (typeof id === 'string' ? id.trim() : String(id)))
@@ -38,7 +44,7 @@ export async function streamChat(
   if (userId) {
     params.set("user_id", userId);
   }
-  const res = await fetch(`${getBase()}/chat/stream?${params}`);
+  const res = await fetch(`${getBase()}/chat/stream?${params}`, { signal });
   if (!res.body) throw new Error('No response body');
 
   const reader = res.body.getReader();
@@ -46,41 +52,68 @@ export async function streamChat(
   let buffer = '';
   let routingMeta: RoutingMeta = {};
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const raw = line.slice(6).trim();
-      if (!raw) continue;
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed.routed_to || parsed.model || parsed.stage || parsed.type === 'routing_init' || parsed.type === 'routing_decision') {
-          routingMeta = {
-            routed_to: parsed.routed_to || routingMeta.routed_to,
-            model: parsed.model || routingMeta.model,
-            stage: parsed.stage || routingMeta.stage,
-            complexity_score: parsed.complexity_score ?? routingMeta.complexity_score,
-          };
-          if (onMeta) {
-            onMeta(routingMeta);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (!raw) continue;
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.routed_to || parsed.model || parsed.stage || parsed.type === 'routing_init' || parsed.type === 'routing_decision') {
+            routingMeta = {
+              routed_to: parsed.routed_to || routingMeta.routed_to,
+              model: parsed.model || routingMeta.model,
+              stage: parsed.stage || routingMeta.stage,
+              complexity_score: parsed.complexity_score ?? routingMeta.complexity_score,
+            };
+            if (onMeta) {
+              onMeta(routingMeta);
+            }
           }
-        }
-        if (parsed.usage) {
-          routingMeta.usage = parsed.usage;
-        }
-        if (parsed.done) {
-          onDone(parsed.session_id, routingMeta);
-        } else if (parsed.token !== undefined && parsed.token !== '') {
-          onToken(parsed.token);
-        }
-      } catch { /* ignore malformed */ }
+          if (parsed.usage) {
+            routingMeta.usage = parsed.usage;
+          }
+          if (parsed.done) {
+            onDone(parsed.session_id, routingMeta);
+          } else if (parsed.token !== undefined && parsed.token !== '') {
+            onToken(parsed.token);
+          }
+        } catch { /* ignore malformed */ }
+      }
     }
+  } catch (err: any) {
+    if (err.name === 'AbortError' || signal?.aborted) {
+      onDone(sessionId, routingMeta);
+      return;
+    }
+    throw err;
   }
 }
+
+export async function stopChatExecution(sessionId: string): Promise<void> {
+  try {
+    await fetch(`${getBase()}/chat/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId }),
+    });
+  } catch (err) {
+    console.warn('Failed to stop chat execution:', err);
+  }
+}
+
+export async function fetchTokenStats(): Promise<TokenStatsResponse> {
+  const res = await fetch(`${getBase()}/chat/token-stats`);
+  if (!res.ok) throw new Error('Failed to fetch token stats');
+  return await res.json();
+}
+
 
 export interface NegativeFeedbackItem {
   id: string;

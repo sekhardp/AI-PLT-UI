@@ -208,23 +208,34 @@ export function MarkdownPreBlock({
 
   // Detect if code block is a valid SlideDeck schema
   const detectedDeck = useMemo<SlideDeck | null>(() => {
-    if (!rawContent || (!language && !rawContent.includes('"deck_title"'))) return null;
+    if (!rawContent || (!rawContent.includes('"slides"') && !rawContent.includes('"deck_title"'))) return null;
     try {
       const parsed = JSON.parse(rawContent.trim());
-      if (
-        parsed &&
-        typeof parsed === 'object' &&
-        typeof parsed.deck_title === 'string' &&
-        Array.isArray(parsed.slides) &&
-        parsed.slides.length > 0
-      ) {
-        return parsed as SlideDeck;
+      if (parsed && typeof parsed === 'object') {
+        const slides = Array.isArray(parsed.slides) ? parsed.slides : null;
+        if (slides && slides.length > 0) {
+          const deckTitle =
+            typeof parsed.deck_title === 'string'
+              ? parsed.deck_title
+              : typeof parsed.title === 'string'
+              ? parsed.title
+              : slides[0]?.title || 'Executive Presentation';
+
+          return {
+            deck_title: deckTitle,
+            deck_subtitle: parsed.deck_subtitle || parsed.subtitle,
+            theme: parsed.theme || 'dark',
+            author: parsed.author || 'AI Platform Orchestrator',
+            slides,
+            sources_summary: parsed.sources_summary || [],
+          } as SlideDeck;
+        }
       }
     } catch {
       // not a json slide deck
     }
     return null;
-  }, [rawContent, language]);
+  }, [rawContent]);
 
   // If it's a valid slide deck, render the interactive SlideDeckViewer widget!
   if (detectedDeck) {

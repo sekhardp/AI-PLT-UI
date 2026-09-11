@@ -90,3 +90,46 @@ export interface SlideDeck {
   slides: Slide[];
   sources_summary?: string[];
 }
+
+// ─── Model Selection & Per-Model Token Analytics Types ────────────────────────
+export type ModelId = 'auto' | 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'qwen-2.5-7b';
+
+export interface ModelOption {
+  id: ModelId;
+  name: string;
+  tier: 'auto' | 'local' | 'frontier';
+  tag: string;
+  description: string;
+  speed: 'Ultra Fast' | 'Fast' | 'Deep Reasoning';
+  modelParam: string;
+}
+
+export interface ModelTokenItem {
+  model: string;
+  display_name: string;
+  tier: 'local' | 'frontier' | string;
+  total_tokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  message_count: number;
+  percentage: number;
+}
+
+export interface TierTokenSummary {
+  total_tokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  message_count: number;
+  percentage: number;
+}
+
+export interface TokenStatsResponse {
+  total_tokens: number;
+  total_queries: number;
+  by_model: ModelTokenItem[];
+  by_tier: {
+    local: TierTokenSummary;
+    frontier: TierTokenSummary;
+  };
+}
+

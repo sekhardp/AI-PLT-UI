@@ -15,17 +15,20 @@ import {
   MessageSquare,
   AlertTriangle,
   CheckCircle2,
+  Sparkles,
+  PieChart,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   fetchAgents,
   fetchDocuments,
   fetchNegativeFeedbacks,
+  fetchTokenStats,
   updateNegativeFeedbackStatus,
   type QuotaInfo,
   type NegativeFeedbackItem,
 } from '../api';
-import type { Agent } from '../types';
+import type { Agent, TokenStatsResponse } from '../types';
 
 export function AdminPage() {
   const { usersList, updateUserCredits, refreshUsers, user: currentUser } = useAuth();
@@ -37,6 +40,7 @@ export function AdminPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [docQuota, setDocQuota] = useState<QuotaInfo | null>(null);
   const [negativeFeedbacks, setNegativeFeedbacks] = useState<NegativeFeedbackItem[]>([]);
+  const [tokenStats, setTokenStats] = useState<TokenStatsResponse | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [isCheckingSystems, setIsCheckingSystems] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
@@ -74,10 +78,11 @@ export function AdminPage() {
     const userId = activeUser?.id ? String(activeUser.id) : (activeUser?.email || 'default_user');
 
     try {
-      const [agentsData, docsData, feedbacksData] = await Promise.all([
+      const [agentsData, docsData, feedbacksData, tokenStatsData] = await Promise.all([
         fetchAgents().catch(() => []),
         fetchDocuments(userId).catch(() => ({ documents: [], quota: null })),
         fetchNegativeFeedbacks().catch(() => []),
+        fetchTokenStats().catch(() => null),
         refreshUsersRef.current().catch(() => {}),
       ]);
 
@@ -88,6 +93,9 @@ export function AdminPage() {
         setDocQuota(docsData.quota);
       }
       setNegativeFeedbacks(feedbacksData || []);
+      if (tokenStatsData) {
+        setTokenStats(tokenStatsData);
+      }
       setLastCheckTime(new Date());
       setStatusMessage({ text: `Diagnostics completed successfully (${duration}ms latency)`, type: 'success' });
       setTimeout(() => setStatusMessage(null), 3000);
@@ -100,6 +108,7 @@ export function AdminPage() {
     }
   }, []);
 
+
   // Initial single load on mount only (zero recurring polling intervals and zero dependency loops)
   useEffect(() => {
     if (hasMountedRef.current) return;
@@ -109,12 +118,25 @@ export function AdminPage() {
 
   // ─── Live Aggregate Business Metrics ─────────────────────────────────────────
   const metrics = useMemo(() => {
-    const totalTokens = usersList.reduce((acc, u) => acc + (u.tokensUsed || 0), 0);
+    const userAggregateTokens = usersList.reduce((acc, u) => acc + (u.tokensUsed || 0), 0);
+    const totalTokens = tokenStats?.total_tokens ?? userAggregateTokens;
     const totalAllocatedCredits = usersList.reduce((acc, u) => acc + (u.credits || 0), 0);
     const activeCreditUsers = usersList.filter((u) => u.credits > 0).length;
     const adminCount = usersList.filter((u) => u.role === 'admin').length;
     const standardCount = usersList.filter((u) => u.role === 'user').length;
     const openFeedbackCount = negativeFeedbacks.filter((f) => f.status !== 'resolved').length;
+
+    const localTierTokens = tokenStats?.by_tier?.local?.total_tokens ?? 0;
+    const localPromptTokens = tokenStats?.by_tier?.local?.prompt_tokens ?? 0;
+    const localCompletionTokens = tokenStats?.by_tier?.local?.completion_tokens ?? 0;
+    const localQueries = tokenStats?.by_tier?.local?.message_count ?? 0;
+    const localPct = tokenStats?.by_tier?.local?.percentage ?? (totalTokens > 0 ? Number(((localTierTokens / totalTokens) * 100).toFixed(1)) : 0);
+
+    const frontierTierTokens = tokenStats?.by_tier?.frontier?.total_tokens ?? 0;
+    const frontierPromptTokens = tokenStats?.by_tier?.frontier?.prompt_tokens ?? 0;
+    const frontierCompletionTokens = tokenStats?.by_tier?.frontier?.completion_tokens ?? 0;
+    const frontierQueries = tokenStats?.by_tier?.frontier?.message_count ?? 0;
+    const frontierPct = tokenStats?.by_tier?.frontier?.percentage ?? (totalTokens > 0 ? Number(((frontierTierTokens / totalTokens) * 100).toFixed(1)) : 0);
 
     return {
       totalTokens,
@@ -123,8 +145,18 @@ export function AdminPage() {
       adminCount,
       standardCount,
       openFeedbackCount,
+      localTierTokens,
+      localPromptTokens,
+      localCompletionTokens,
+      localQueries,
+      localPct,
+      frontierTierTokens,
+      frontierPromptTokens,
+      frontierCompletionTokens,
+      frontierQueries,
+      frontierPct,
     };
-  }, [usersList, negativeFeedbacks]);
+  }, [usersList, negativeFeedbacks, tokenStats]);
 
   // ─── Dynamic Service Status Checks based on live probe results ───────────────
   const isCloudSqlConnected = usersList.length > 0;
@@ -249,24 +281,22 @@ export function AdminPage() {
         .admin-header-title-group {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
         }
 
         .admin-title-icon {
-          width: 46px;
-          height: 46px;
+          width: 44px;
+          height: 44px;
           border-radius: var(--r-md);
-          background: linear-gradient(135deg, var(--accent), #095554);
+          background: rgba(10, 95, 107, 0.1);
+          color: var(--accent);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 14px var(--accent-glow);
-          color: #fff;
-          flex-shrink: 0;
         }
 
         .admin-title-text h2 {
-          font-size: 1.45rem;
+          font-size: 1.35rem;
           font-weight: 700;
           color: var(--text-primary-dark);
           letter-spacing: -0.01em;
@@ -274,10 +304,10 @@ export function AdminPage() {
         }
 
         .admin-title-text p {
-          font-size: 0.82rem;
+          font-size: 0.78rem;
           color: var(--text-primary-dark);
-          opacity: 0.7;
-          margin-top: 2px;
+          opacity: 0.65;
+          margin: 2px 0 0;
         }
 
         .admin-header-actions {
@@ -292,35 +322,30 @@ export function AdminPage() {
           gap: 6px;
           padding: 6px 12px;
           border-radius: var(--r-full);
-          background: rgba(16, 185, 129, 0.08);
-          border: 1px solid rgba(16, 185, 129, 0.25);
+          background: rgba(16, 185, 129, 0.1);
           color: #065f46;
-          font-size: 0.75rem;
+          font-size: 0.74rem;
           font-weight: 600;
+          border: 1px solid rgba(16, 185, 129, 0.25);
         }
 
         .live-dot {
           width: 7px;
           height: 7px;
           border-radius: 50%;
-          background: var(--success);
-          box-shadow: 0 0 8px var(--success);
-          animation: statusBlink 1.5s ease-in-out infinite;
-        }
-
-        @keyframes statusBlink {
-          0%, 100% { opacity: 0.5; transform: scale(0.9); }
-          50% { opacity: 1; transform: scale(1.15); }
+          background: #10b981;
+          box-shadow: 0 0 6px #10b981;
+          display: inline-block;
         }
 
         .refresh-btn {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 7px 14px;
+          padding: 6px 14px;
           border-radius: var(--r-md);
-          background: rgba(19, 62, 66, 0.06);
           border: 1px solid rgba(19, 62, 66, 0.14);
+          background: rgba(19, 62, 66, 0.06);
           color: var(--text-primary-dark);
           font-size: 0.78rem;
           font-weight: 600;
@@ -378,26 +403,24 @@ export function AdminPage() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          font-size: 0.74rem;
-          font-weight: 700;
+          font-size: 0.78rem;
+          font-weight: 600;
           color: var(--text-primary-dark);
           opacity: 0.75;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
         }
 
         .kpi-icon-box {
           width: 32px;
           height: 32px;
-          border-radius: var(--r-sm);
-          background: rgba(10, 95, 107, 0.08);
+          border-radius: var(--r-md);
+          background: rgba(19, 62, 66, 0.06);
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
         .kpi-value {
-          font-size: 1.75rem;
+          font-size: 1.65rem;
           font-weight: 700;
           color: var(--text-primary-dark);
           letter-spacing: -0.02em;
@@ -920,7 +943,7 @@ export function AdminPage() {
           </div>
           <div className="admin-title-text">
             <h2>Enterprise Admin Console</h2>
-            <p>Cloud SQL User Ledger · Disliked QA Audit · Real-Time Multi-Agent Telemetry</p>
+            <p>Cloud SQL User Ledger · Per-Model Token Breakdown · Real-Time Multi-Agent Telemetry</p>
           </div>
         </div>
 
@@ -960,8 +983,9 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* ─── Live Business & Platform KPIs ────────────────────────────────────── */}
+      {/* ─── Live Business & Platform KPIs (with Per-Model Token Consumption Tiles) ─── */}
       <section className="kpi-grid">
+        {/* KPI 1: Total Tokens */}
         <div className="kpi-card">
           <div className="kpi-card-header">
             <span>Total Token Consumption</span>
@@ -969,10 +993,43 @@ export function AdminPage() {
           </div>
           <div className="kpi-value">{metrics.totalTokens.toLocaleString()}</div>
           <div className="kpi-footer">
-            <span>Across Local GPU (Qwen) & Frontier (Gemini)</span>
+            <span>Across Local GPU & Frontier Gemini Models</span>
           </div>
         </div>
 
+        {/* KPI 2 [NEW TILE 1]: Local Model Token Consumption (Qwen 2.5 7B) */}
+        <div className="kpi-card" style={{ borderLeft: '3px solid var(--accent)' }}>
+          <div className="kpi-card-header">
+            <span>Local Model Tokens (Qwen 2.5 7B)</span>
+            <div className="kpi-icon-box" style={{ background: 'rgba(10, 95, 107, 0.1)' }}>
+              <Cpu size={16} color="var(--accent)" />
+            </div>
+          </div>
+          <div className="kpi-value" style={{ color: 'var(--accent)' }}>
+            {metrics.localTierTokens.toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 600, opacity: 0.65 }}>tokens</span>
+          </div>
+          <div className="kpi-footer">
+            <span>Prompt: {metrics.localPromptTokens.toLocaleString()} · Completion: {metrics.localCompletionTokens.toLocaleString()} ({metrics.localPct}% share)</span>
+          </div>
+        </div>
+
+        {/* KPI 3 [NEW TILE 2]: Frontier Model Token Consumption (Gemini 2.5) */}
+        <div className="kpi-card" style={{ borderLeft: '3px solid var(--tabs-prompt)' }}>
+          <div className="kpi-card-header">
+            <span>Frontier Model Tokens (Gemini 2.5)</span>
+            <div className="kpi-icon-box" style={{ background: 'rgba(19, 62, 66, 0.08)' }}>
+              <Sparkles size={16} color="var(--tabs-prompt)" />
+            </div>
+          </div>
+          <div className="kpi-value" style={{ color: 'var(--tabs-prompt)' }}>
+            {metrics.frontierTierTokens.toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 600, opacity: 0.65 }}>tokens</span>
+          </div>
+          <div className="kpi-footer">
+            <span>Prompt: {metrics.frontierPromptTokens.toLocaleString()} · Completion: {metrics.frontierCompletionTokens.toLocaleString()} ({metrics.frontierPct}% share)</span>
+          </div>
+        </div>
+
+        {/* KPI 4: Active Credit Pool */}
         <div className="kpi-card">
           <div className="kpi-card-header">
             <span>Active Credit Pool</span>
@@ -984,6 +1041,7 @@ export function AdminPage() {
           </div>
         </div>
 
+        {/* KPI 5: Managed Accounts */}
         <div className="kpi-card">
           <div className="kpi-card-header">
             <span>Managed User Accounts</span>
@@ -995,6 +1053,7 @@ export function AdminPage() {
           </div>
         </div>
 
+        {/* KPI 6: Disliked QA */}
         <div className="kpi-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('qa_feedback')}>
           <div className="kpi-card-header">
             <span>QA Disliked Responses</span>
@@ -1459,6 +1518,156 @@ export function AdminPage() {
             )}
           </div>
 
+          {/* Per-Model Token Consumption Breakdown Card */}
+          <div className="admin-panel-card">
+            <div className="panel-heading-row">
+              <h3 className="panel-heading-title">
+                <PieChart size={18} color="var(--accent)" />
+                Per-Model Token Breakdown
+              </h3>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-primary-dark)', opacity: 0.65 }}>
+                {tokenStats?.total_queries ?? 0} total queries
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Tier Distribution Split Bar */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 600 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--accent)' }}>
+                    <Cpu size={13} /> Local GPU ({metrics.localPct}%)
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--tabs-prompt)' }}>
+                    <Sparkles size={13} /> Frontier ({metrics.frontierPct}%)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', height: '8px', borderRadius: '4px', overflow: 'hidden', background: 'rgba(19, 62, 66, 0.08)' }}>
+                  <div
+                    style={{
+                      width: `${Math.max(4, metrics.localPct)}%`,
+                      background: 'var(--accent)',
+                      transition: 'width 0.3s ease',
+                    }}
+                    title={`Local LLM: ${metrics.localTierTokens.toLocaleString()} tokens`}
+                  />
+                  <div
+                    style={{
+                      width: `${Math.max(4, metrics.frontierPct)}%`,
+                      background: 'var(--tabs-prompt)',
+                      transition: 'width 0.3s ease',
+                    }}
+                    title={`Frontier Models: ${metrics.frontierTierTokens.toLocaleString()} tokens`}
+                  />
+                </div>
+              </div>
+
+              {/* Individual Model Cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {tokenStats?.by_model && tokenStats.by_model.length > 0 ? (
+                  tokenStats.by_model.map((m) => (
+                    <div
+                      key={m.model}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--r-sm)',
+                        background: 'rgba(19, 62, 66, 0.04)',
+                        border: '1px solid rgba(19, 62, 66, 0.12)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {m.tier === 'local' ? (
+                          <Cpu size={14} color="var(--accent)" />
+                        ) : (
+                          <Sparkles size={14} color="var(--tabs-prompt)" />
+                        )}
+                        <div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary-dark)' }}>
+                            {m.display_name}
+                          </div>
+                          <div style={{ fontSize: '0.66rem', opacity: 0.65 }}>
+                            {m.message_count} queries · {m.percentage}% share
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 700, color: m.tier === 'local' ? 'var(--accent)' : 'var(--tabs-prompt)' }}>
+                          {m.total_tokens.toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: '0.64rem', opacity: 0.6 }}>tokens</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--r-sm)',
+                        background: 'rgba(10, 95, 107, 0.04)',
+                        border: '1px solid rgba(10, 95, 107, 0.12)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Cpu size={14} color="var(--accent)" />
+                        <div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary-dark)' }}>
+                            Qwen 2.5 7B (Local LLM)
+                          </div>
+                          <div style={{ fontSize: '0.66rem', opacity: 0.65 }}>
+                            {metrics.localQueries} queries · {metrics.localPct}% share
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent)' }}>
+                          {metrics.localTierTokens.toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: '0.64rem', opacity: 0.6 }}>tokens</div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--r-sm)',
+                        background: 'rgba(19, 62, 66, 0.04)',
+                        border: '1px solid rgba(19, 62, 66, 0.12)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={14} color="var(--tabs-prompt)" />
+                        <div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary-dark)' }}>
+                            Gemini 2.5 (Frontier Models)
+                          </div>
+                          <div style={{ fontSize: '0.66rem', opacity: 0.65 }}>
+                            {metrics.frontierQueries} queries · {metrics.frontierPct}% share
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 700, color: 'var(--tabs-prompt)' }}>
+                          {metrics.frontierTierTokens.toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: '0.64rem', opacity: 0.6 }}>tokens</div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Business Consumption Leaderboard */}
           <div className="admin-panel-card">
             <div className="panel-heading-row">
@@ -1520,3 +1729,4 @@ export function AdminPage() {
     </div>
   );
 }
+

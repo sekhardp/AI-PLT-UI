@@ -22,6 +22,113 @@ interface SlideDeckViewerProps {
   initialSlide?: number;
 }
 
+
+// Helper to normalize slide properties to support LLM JSON variances
+function normalizeSlideData(rawSlide: any): Slide {
+  if (!rawSlide) return rawSlide;
+
+  // Extract bullet points from bullets, bullet_points, points, takeaways, or cards
+  const bulletPoints: string[] = [];
+  const rawBullets = rawSlide.bullet_points || rawSlide.bullets || rawSlide.takeaways || rawSlide.points || [];
+  if (Array.isArray(rawBullets)) {
+    for (const b of rawBullets) {
+      if (typeof b === "string") {
+        bulletPoints.push(b);
+      } else if (b && typeof b === "object") {
+        bulletPoints.push(b.content || b.text || b.title || "");
+      }
+    }
+  }
+
+  if (Array.isArray(rawSlide.cards)) {
+    for (const c of rawSlide.cards) {
+      if (typeof c === "string") {
+        bulletPoints.push(c);
+      } else if (c && typeof c === "object") {
+        const prefix = c.title ? `${c.title}: ` : "";
+        bulletPoints.push(`${prefix}${c.content || c.text || ""}`.trim());
+      }
+    }
+  }
+
+  // Normalize KPI cards
+  const rawKpis = rawSlide.kpi_cards || rawSlide.kpis || [];
+  const kpiCards = Array.isArray(rawKpis)
+    ? rawKpis.map((k: any) => ({
+        label: k.label || k.title || k.name || "Metric",
+        value: String(k.value ?? k.val ?? "0"),
+        change: k.change || k.delta || k.delta_yoy || k.delta_qoq || undefined,
+        trend: k.trend || (String(k.change || k.delta || k.delta_yoy || "").includes("-") ? "down" : "up"),
+      }))
+    : [];
+
+  // Normalize two-column content
+  let leftTitle = rawSlide.left_column_title;
+  let leftBullets = Array.isArray(rawSlide.left_column_bullets) ? [...rawSlide.left_column_bullets] : [];
+  if (rawSlide.left_column && typeof rawSlide.left_column === "object") {
+    leftTitle = rawSlide.left_column.title || leftTitle;
+    const rawC = rawSlide.left_column.content || "";
+    if (typeof rawC === "string") {
+      const parts = rawC.replace(/<br\s*[/]?>/gi, "\n").split("\n").map((s: string) => s.trim()).filter(Boolean);
+      leftBullets.push(...parts);
+    } else if (Array.isArray(rawC)) {
+      leftBullets.push(...rawC.map(String));
+    }
+  }
+
+  let rightTitle = rawSlide.right_column_title;
+  let rightBullets = Array.isArray(rawSlide.right_column_bullets) ? [...rawSlide.right_column_bullets] : [];
+  if (rawSlide.right_column && typeof rawSlide.right_column === "object") {
+    rightTitle = rawSlide.right_column.title || rightTitle;
+    const rawC = rawSlide.right_column.content || "";
+    if (typeof rawC === "string") {
+      const parts = rawC.replace(/<br\s*[/]?>/gi, "\n").split("\n").map((s: string) => s.trim()).filter(Boolean);
+      rightBullets.push(...parts);
+    } else if (Array.isArray(rawC)) {
+      rightBullets.push(...rawC.map(String));
+    }
+  }
+
+  // Normalize chart
+  let chart = rawSlide.chart;
+  if (chart && typeof chart === "object") {
+    chart = {
+      chart_type: chart.chart_type || chart.type || "bar",
+      title: chart.title,
+      categories: Array.isArray(chart.categories)
+        ? chart.categories.map(String)
+        : Array.isArray(chart.labels)
+        ? chart.labels.map(String)
+        : [],
+      series: Array.isArray(chart.series)
+        ? chart.series.map((s: any) => ({
+            name: s.name || s.label || "Series",
+            values: Array.isArray(s.values)
+              ? s.values.map(Number)
+              : Array.isArray(s.data)
+              ? s.data.map(Number)
+              : [],
+          }))
+        : [],
+    };
+  }
+
+  return {
+    ...rawSlide,
+    slide_number: rawSlide.slide_number || 1,
+    layout: rawSlide.layout || "bullet_cards",
+    title: rawSlide.title || rawSlide.header || "Executive Briefing",
+    subtitle: rawSlide.subtitle || rawSlide.description,
+    bullet_points: bulletPoints,
+    kpi_cards: kpiCards,
+    left_column_title: leftTitle,
+    left_column_bullets: leftBullets,
+    right_column_title: rightTitle,
+    right_column_bullets: rightBullets,
+    chart,
+  };
+}
+
 export function SlideDeckViewer({ deck, initialSlide = 0 }: SlideDeckViewerProps) {
   const [currentIdx, setCurrentIdx] = useState(initialSlide);
   const [isExporting, setIsExporting] = useState(false);
@@ -29,7 +136,7 @@ export function SlideDeckViewer({ deck, initialSlide = 0 }: SlideDeckViewerProps
   const [showRawJson, setShowRawJson] = useState(false);
 
   const slides = deck.slides || [];
-  const currentSlide: Slide | undefined = slides[currentIdx];
+  const currentSlide: Slide | undefined = slides[currentIdx] ? normalizeSlideData(slides[currentIdx]) : undefined;
 
   const handleDownload = async () => {
     try {
