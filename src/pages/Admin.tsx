@@ -25,8 +25,10 @@ import {
   fetchNegativeFeedbacks,
   fetchTokenStats,
   updateNegativeFeedbackStatus,
+  checkLocalLlmHealth,
   type QuotaInfo,
   type NegativeFeedbackItem,
+  type HealthStatus,
 } from '../api';
 import type { Agent, TokenStatsResponse } from '../types';
 
@@ -41,6 +43,11 @@ export function AdminPage() {
   const [docQuota, setDocQuota] = useState<QuotaInfo | null>(null);
   const [negativeFeedbacks, setNegativeFeedbacks] = useState<NegativeFeedbackItem[]>([]);
   const [tokenStats, setTokenStats] = useState<TokenStatsResponse | null>(null);
+  const [localLlmHealth, setLocalLlmHealth] = useState<HealthStatus>({
+    online: true,
+    status: 'checking',
+    model: 'Qwen 2.5 7B',
+  });
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [isCheckingSystems, setIsCheckingSystems] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
@@ -78,11 +85,12 @@ export function AdminPage() {
     const userId = activeUser?.id ? String(activeUser.id) : (activeUser?.email || 'default_user');
 
     try {
-      const [agentsData, docsData, feedbacksData, tokenStatsData] = await Promise.all([
+      const [agentsData, docsData, feedbacksData, tokenStatsData, healthData] = await Promise.all([
         fetchAgents().catch(() => []),
         fetchDocuments(userId).catch(() => ({ documents: [], quota: null })),
         fetchNegativeFeedbacks().catch(() => []),
         fetchTokenStats().catch(() => null),
+        checkLocalLlmHealth().catch(() => ({ online: false, status: 'standby' as const })),
         refreshUsersRef.current().catch(() => {}),
       ]);
 
@@ -95,6 +103,9 @@ export function AdminPage() {
       setNegativeFeedbacks(feedbacksData || []);
       if (tokenStatsData) {
         setTokenStats(tokenStatsData);
+      }
+      if (healthData) {
+        setLocalLlmHealth(healthData);
       }
       setLastCheckTime(new Date());
       setStatusMessage({ text: `Diagnostics completed successfully (${duration}ms latency)`, type: 'success' });
@@ -162,12 +173,6 @@ export function AdminPage() {
   const isCloudSqlConnected = usersList.length > 0;
   const isFrontierReady = agents.some(
     (a) => a.type === 'orchestrator' || a.name.toLowerCase().includes('orchestrator') || a.capabilities?.includes('synthesis')
-  );
-  const isLocalLlmOnline = agents.some(
-    (a) =>
-      a.name.toLowerCase().includes('local') ||
-      a.name.toLowerCase().includes('vllm') ||
-      a.capabilities?.some((c) => c.toLowerCase().includes('vllm') || c.toLowerCase().includes('local'))
   );
 
   // ─── Filtered Users List ─────────────────────────────────────────────────────
@@ -1450,27 +1455,31 @@ export function AdminPage() {
 
               <div className="service-health-item">
                 <div className="service-info">
-                  <Zap size={16} color={isLocalLlmOnline ? '#10b981' : '#b45309'} />
+                  <Zap size={16} color={localLlmHealth.online ? '#10b981' : '#b45309'} />
                   <div>
                     <div className="service-name">Local GPU vLLM Engine</div>
                     <div className="service-desc">
-                      {isLocalLlmOnline
-                        ? 'Qwen 2.5 7B low-latency GPU inference'
-                        : 'vLLM instance offline — Traffic routed to Frontier'}
+                      {localLlmHealth.online
+                        ? `Qwen 2.5 7B GPU inference (${localLlmHealth.latencyMs !== undefined ? `${localLlmHealth.latencyMs}ms probe` : 'Connected'})`
+                        : 'vLLM instance unreachable — Traffic routed to Frontier'}
                     </div>
                   </div>
                 </div>
-                <span className={`service-badge ${isLocalLlmOnline ? 'online' : 'standby'}`}>
+                <span className={`service-badge ${localLlmHealth.online ? 'online' : 'standby'}`}>
                   <span
                     className="live-dot"
                     style={{
                       width: 5,
                       height: 5,
-                      background: isLocalLlmOnline ? 'var(--success)' : '#f59e0b',
-                      boxShadow: isLocalLlmOnline ? '0 0 8px var(--success)' : 'none',
+                      background: localLlmHealth.online ? 'var(--success)' : '#f59e0b',
+                      boxShadow: localLlmHealth.online ? '0 0 8px var(--success)' : 'none',
                     }}
                   />
-                  {isLocalLlmOnline ? 'Online' : 'Standby / Offline'}
+                  {localLlmHealth.status === 'checking'
+                    ? 'Probing…'
+                    : localLlmHealth.online
+                    ? 'Online'
+                    : 'Standby / Offline'}
                 </span>
               </div>
 

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Cpu, Network, HardDrive, LogOut, User as UserIcon, ShieldAlert } from 'lucide-react';
+import { Plus, Trash2, Wrench, Network, HardDrive, LogOut, User as UserIcon, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Session } from '../types';
 
@@ -131,8 +131,8 @@ export function Sidebar({
 
         <hr style={{ border: '0', borderTop: '1px solid var(--glass-border)', margin: '8px 0' }} />
 
-        <button className="sidebar-nav-btn" onClick={onShowAgents} id="btn-show-agents">
-          <Cpu size={15} /> Agent Registry
+        <button className="sidebar-nav-btn" onClick={onShowAgents} id="btn-show-tools">
+          <Wrench size={15} /> Tool Registry
         </button>
         <button className="sidebar-nav-btn" onClick={onShowUpload} id="btn-show-upload">
           <HardDrive size={15} /> Knowledge Base

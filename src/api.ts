@@ -1,10 +1,8 @@
 import { getConfig } from './config';
-import type { TokenStatsResponse } from './types';
+import type { TokenStatsResponse, ToolCallEvent } from './types';
 
 /** Resolves the backend base URL at call-time from the runtime config. */
 const getBase = () => getConfig().apiBaseUrl;
-
-
 
 export interface RoutingMeta {
   routed_to?: 'local' | 'frontier' | 'ai_router' | string;
@@ -16,6 +14,7 @@ export interface RoutingMeta {
     completion_tokens?: number;
     total_tokens?: number;
   };
+  toolEvents?: ToolCallEvent[];
 }
 
 export async function streamChat(
@@ -27,7 +26,8 @@ export async function streamChat(
   documentIds?: string[],
   userId?: string,
   model?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onToolEvent?: (event: ToolCallEvent) => void
 ) {
   const params = new URLSearchParams({ prompt, session_id: sessionId });
   if (model && model.trim() && model !== 'auto') {
@@ -74,6 +74,21 @@ export async function streamChat(
             };
             if (onMeta) {
               onMeta(routingMeta);
+            }
+          }
+          if (parsed.type === 'tool_start' || parsed.type === 'tool_done') {
+            const toolEvt: ToolCallEvent = {
+              id: parsed.id || `${parsed.tool_name}_${Date.now()}`,
+              tool_name: parsed.tool_name,
+              arguments: parsed.arguments,
+              status: parsed.status || (parsed.type === 'tool_start' ? 'running' : 'success'),
+              duration_ms: parsed.duration_ms,
+              result_preview: parsed.result_preview,
+              error: parsed.error,
+              timestamp: new Date().toISOString(),
+            };
+            if (onToolEvent) {
+              onToolEvent(toolEvt);
             }
           }
           if (parsed.usage) {
@@ -359,4 +374,79 @@ export async function exportPresentationPptx(deck: any, filename?: string): Prom
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
   }, 100);
+}
+
+// ─── Live Instance Health Check API ─────────────────────────────────────────
+export interface HealthStatus {
+  online: boolean;
+  status: 'online' | 'standby' | 'checking';
+  latencyMs?: number;
+  model?: string;
+  error?: string;
+  timestamp?: string;
+}
+
+export async function checkLocalLlmHealth(): Promise<HealthStatus> {
+  const startTime = performance.now();
+  try {
+    const base = getBase();
+    const rootUrl = base.replace(/\/api\/v1\/?$/, '');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    // Probe live instance health endpoints
+    let res: Response | null = null;
+    try {
+      res = await fetch(`${rootUrl}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+    } catch {
+      try {
+        res = await fetch(`${rootUrl}/api/health`, {
+          method: 'GET',
+          signal: controller.signal,
+        });
+      } catch {
+        res = null;
+      }
+    }
+
+    clearTimeout(timeoutId);
+
+    const latencyMs = Math.round(performance.now() - startTime);
+
+    if (res && (res.ok || res.status === 200)) {
+      const data = await res.json().catch(() => ({ status: 'healthy' }));
+      const isHealthy =
+        data.status === 'healthy' ||
+        data.status === 'ok' ||
+        data.healthy === true ||
+        res.status === 200;
+
+      return {
+        online: isHealthy,
+        status: isHealthy ? 'online' : 'standby',
+        latencyMs,
+        model: 'Qwen 2.5 7B',
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+    }
+
+    return {
+      online: false,
+      status: 'standby',
+      latencyMs,
+      error: res ? `HTTP ${res.status}` : 'Instance unreachable',
+    };
+  } catch (err: any) {
+    const latencyMs = Math.round(performance.now() - startTime);
+    return {
+      online: false,
+      status: 'standby',
+      latencyMs,
+      error: err?.message || 'Instance probe failed',
+    };
+  }
 }

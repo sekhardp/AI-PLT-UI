@@ -1,4 +1,21 @@
-import { Sparkles, User, ThumbsUp, ThumbsDown, Zap, Cpu, FileText } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Sparkles,
+  User,
+  ThumbsUp,
+  ThumbsDown,
+  Zap,
+  Cpu,
+  FileText,
+  Database,
+  Search,
+  Presentation,
+  Wrench,
+  Check,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Message } from '../types';
@@ -10,11 +27,64 @@ interface MessageBubbleProps {
   onFeedback: (msgId: string, rating: 1 | -1) => void;
 }
 
+/** Prettify raw MCP tool names into clean human-readable domain titles */
+function getToolMeta(toolName: string): { label: string; group: string; icon: React.ReactNode } {
+  const name = toolName.toLowerCase();
+
+  if (name.includes('monthly_spend_trend')) {
+    return { label: 'Monthly Spend Trend', group: 'BigQuery', icon: <Database size={12} color="var(--accent)" /> };
+  }
+  if (name.includes('executive_dashboard')) {
+    return { label: 'Executive Dashboard KPI', group: 'BigQuery', icon: <Database size={12} color="var(--accent)" /> };
+  }
+  if (name.includes('procurement_kpi')) {
+    return { label: 'Procurement KPIs', group: 'BigQuery', icon: <Database size={12} color="var(--accent)" /> };
+  }
+  if (name.includes('enterprise_spend_fact')) {
+    return { label: 'Enterprise Spend Fact', group: 'BigQuery', icon: <Database size={12} color="var(--accent)" /> };
+  }
+  if (name.includes('supplier_risk')) {
+    return { label: 'Supplier Risk Assessment', group: 'BigQuery', icon: <Database size={12} color="var(--accent)" /> };
+  }
+  if (name.includes('savings_opportunity')) {
+    return { label: 'Savings Opportunities', group: 'BigQuery', icon: <Database size={12} color="var(--accent)" /> };
+  }
+  if (name.includes('search_knowledge_base') || name.includes('rag_server')) {
+    return { label: 'Knowledge Base Search', group: 'RAG', icon: <Search size={12} color="hsl(188, 93%, 84%)" /> };
+  }
+  if (name.includes('compile_deck') || name.includes('pptx') || name.includes('ppt_server')) {
+    return { label: 'Presentation Compiler', group: 'PowerPoint', icon: <Presentation size={12} color="var(--accent)" /> };
+  }
+  if (name.includes('validate_presentation')) {
+    return { label: 'Presentation Validator', group: 'Schema', icon: <Check size={12} color="var(--success)" /> };
+  }
+
+  // Generic fallback
+  const clean = toolName.replace(/^.*__/, '').replace(/_/g, ' ');
+  return { label: clean, group: 'Tool', icon: <Wrench size={12} color="var(--accent)" /> };
+}
+
+function formatArgsSummary(args?: Record<string, any>): string | null {
+  if (!args || Object.keys(args).length === 0) return null;
+  const entries = Object.entries(args)
+    .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => {
+      const strVal = typeof v === 'object' ? JSON.stringify(v) : String(v);
+      const cleanVal = strVal.length > 35 ? strVal.slice(0, 32) + '…' : strVal;
+      return `${k}: ${cleanVal}`;
+    });
+  return entries.length > 0 ? entries.join(' · ') : null;
+}
+
 export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
+  const [showToolDrawer, setShowToolDrawer] = useState(false);
   const isUser = msg.role === 'user';
   const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const isThinking = !isUser && msg.isStreaming && !msg.content.trim();
-  const normalizedContent = normalizeMarkdown(msg.content);
+  const hasContent = Boolean(msg.content && msg.content.trim());
+  const isThinking = !isUser && msg.isStreaming && !hasContent;
+  const normalizedContent = normalizeMarkdown(msg.content, msg.isStreaming);
+  const toolEvents = msg.toolEvents || [];
+  const hasTools = toolEvents.length > 0;
 
   return (
     <div className={`message-row ${isUser ? 'user' : 'assistant'}`} role="article" aria-label={`${msg.role} message`}>
@@ -90,6 +160,7 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
             )}
           </div>
         )}
+
         {isUser && (
           <div className="message-author-header user-header" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span className="author-badge user-badge">
@@ -134,33 +205,146 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
             )}
           </div>
         )}
+
+        {/* ─── Completed Message: Collapsible Tool Execution Drawer ──────────────── */}
+        {!isUser && !msg.isStreaming && hasTools && (
+          <div className="tool-collapsible-drawer">
+            <button
+              type="button"
+              className="tool-collapsible-header"
+              onClick={() => setShowToolDrawer(!showToolDrawer)}
+              aria-expanded={showToolDrawer}
+            >
+              <div className="tool-collapsible-header-left">
+                <Wrench size={12} color="var(--accent)" />
+                <span className="tool-collapsible-title">
+                  {toolEvents.length} {toolEvents.length === 1 ? 'tool' : 'tools'} executed to ground response
+                </span>
+              </div>
+              <div className="tool-collapsible-header-right">
+                <span className="tool-collapsible-toggle-text">
+                  {showToolDrawer ? 'Hide execution details' : 'View execution trace'}
+                </span>
+                {showToolDrawer ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              </div>
+            </button>
+
+            {showToolDrawer && (
+              <div className="tool-collapsible-body">
+                {toolEvents.map((tool, idx) => {
+                  const meta = getToolMeta(tool.tool_name);
+                  const argsSummary = formatArgsSummary(tool.arguments);
+                  return (
+                    <div key={tool.id || idx} className="tool-step-item done">
+                      <div className="tool-step-icon-badge">
+                        {meta.icon}
+                      </div>
+                      <div className="tool-step-content">
+                        <div className="tool-step-header-line">
+                          <span className="tool-step-name">{meta.label}</span>
+                          <span className="tool-step-group-pill">{meta.group}</span>
+                          {tool.duration_ms !== undefined && (
+                            <span className="tool-step-duration">{tool.duration_ms}ms</span>
+                          )}
+                          <span className="tool-step-status success">
+                            <Check size={11} /> Done
+                          </span>
+                        </div>
+                        {argsSummary && (
+                          <div className="tool-step-args">
+                            <code>{argsSummary}</code>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── Active Streaming State: Live Tool Steps + Thinking Progress ────────── */}
         {isThinking ? (
           <div className="agent-thinking-card" aria-live="polite">
-            <div className="agent-thinking-pulse">
-              <span className="pulse-wave wave-1" />
-              <span className="pulse-wave wave-2" />
-              <span className="pulse-wave wave-3" />
+            <div className="agent-thinking-header">
+              <div className="agent-thinking-pulse">
+                <span className="pulse-wave wave-1" />
+                <span className="pulse-wave wave-2" />
+                <span className="pulse-wave wave-3" />
+              </div>
+              <div className="agent-thinking-info">
+                <span className="thinking-primary-text">
+                  {hasTools
+                    ? `Executing ${toolEvents.find((t) => t.status === 'running') ? getToolMeta(toolEvents.find((t) => t.status === 'running')!.tool_name).label : 'agent tools'}…`
+                    : msg.routed_to === 'ai_router'
+                    ? 'AI Router is analyzing query complexity…'
+                    : msg.routed_to === 'local'
+                    ? `Executing on Local LLM (${msg.model ? msg.model.split('/').pop() : 'Qwen 2.5 7B'})…`
+                    : msg.routed_to === 'frontier'
+                    ? `Executing on Frontier Model (${msg.model ? msg.model.split('/').pop() : 'Gemini 2.5 Pro'})…`
+                    : 'Orchestrator is executing…'}
+                </span>
+                <span className="thinking-secondary-text">
+                  {hasTools
+                    ? 'Fetching live BigQuery telemetry & RAG knowledge base insights'
+                    : msg.routed_to === 'ai_router'
+                    ? 'Evaluating query complexity & tool requirements to select model tier'
+                    : msg.routed_to === 'local'
+                    ? 'Fast low-latency inference on dedicated Compute Engine GPU'
+                    : msg.routed_to === 'frontier'
+                    ? 'Deep analytical reasoning synthesized on Vertex AI'
+                    : 'Routing query to specialized agents & synthesizing response'}
+                </span>
+              </div>
             </div>
-            <div className="agent-thinking-info">
-              <span className="thinking-primary-text">
-                {msg.routed_to === 'ai_router'
-                  ? 'AI Router is analyzing query complexity…'
-                  : msg.routed_to === 'local'
-                  ? `Executing on Local LLM (${msg.model ? msg.model.split('/').pop() : 'Qwen 2.5 7B'})…`
-                  : msg.routed_to === 'frontier'
-                  ? `Executing on Frontier Model (${msg.model ? msg.model.split('/').pop() : 'Gemini 2.5 Flash'})…`
-                  : 'Orchestrator is executing…'}
-              </span>
-              <span className="thinking-secondary-text">
-                {msg.routed_to === 'ai_router'
-                  ? 'Evaluating query complexity & tool requirements to select model tier'
-                  : msg.routed_to === 'local'
-                  ? 'Fast low-latency inference on dedicated Compute Engine GPU'
-                  : msg.routed_to === 'frontier'
-                  ? 'Deep analytical reasoning synthesized on Vertex AI'
-                  : 'Routing query to specialized agents & synthesizing response'}
-              </span>
-            </div>
+
+            {/* Live Tool Progress Step List */}
+            {hasTools && (
+              <div className="live-tool-steps-container">
+                {toolEvents.map((tool, idx) => {
+                  const meta = getToolMeta(tool.tool_name);
+                  const argsSummary = formatArgsSummary(tool.arguments);
+                  const isRunning = tool.status === 'running';
+                  return (
+                    <div key={tool.id || idx} className={`tool-step-item ${isRunning ? 'running' : 'done'}`}>
+                      <div className="tool-step-icon-badge">
+                        {isRunning ? (
+                          <Loader2 size={12} className="spin-fast" color="var(--accent)" />
+                        ) : (
+                          meta.icon
+                        )}
+                      </div>
+                      <div className="tool-step-content">
+                        <div className="tool-step-header-line">
+                          <span className="tool-step-name">{meta.label}</span>
+                          <span className="tool-step-group-pill">{meta.group}</span>
+                          {tool.duration_ms !== undefined && (
+                            <span className="tool-step-duration">{tool.duration_ms}ms</span>
+                          )}
+                          <span className={`tool-step-status ${isRunning ? 'running' : 'success'}`}>
+                            {isRunning ? (
+                              <>
+                                <span className="active-dot" /> Calling…
+                              </>
+                            ) : (
+                              <>
+                                <Check size={11} /> Done
+                              </>
+                            )}
+                          </span>
+                        </div>
+                        {argsSummary && (
+                          <div className="tool-step-args">
+                            <code>{argsSummary}</code>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : (
           <div className={`message-bubble ${isUser ? 'user-bubble' : 'ai-bubble'}`}>
@@ -170,7 +354,7 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
                 components={{
                   table: MarkdownTable,
                   td: MarkdownTableCell,
-                  pre: MarkdownPreBlock,
+                  pre: (props: any) => <MarkdownPreBlock {...props} isStreaming={msg.isStreaming} />,
                 }}
               >
                 {normalizedContent}
@@ -179,6 +363,7 @@ export function MessageBubble({ msg, onFeedback }: MessageBubbleProps) {
             {msg.isStreaming && <span className="streaming-cursor" aria-hidden="true" />}
           </div>
         )}
+
         <div className="message-meta">
           <span className="message-time">{time}</span>
           {!isUser && !msg.isStreaming && (

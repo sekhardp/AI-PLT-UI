@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
-import { Table, Copy, Check, Download, Code as CodeIcon } from 'lucide-react';
+import { Table, Copy, Check, Download, Code as CodeIcon, Presentation, Loader2 } from 'lucide-react';
 import { SlideDeckViewer } from './SlideDeckViewer';
 import type { SlideDeck } from '../types';
 
@@ -186,6 +186,7 @@ export function MarkdownTableCell({
 export function MarkdownPreBlock({
   node: _node,
   children,
+  isStreaming,
   ...props
 }: any) {
   const [copied, setCopied] = useState(false);
@@ -206,11 +207,27 @@ export function MarkdownPreBlock({
     }
   }
 
+  const isSlideDeckJson = useMemo(() => {
+    if (!rawContent) return false;
+    const lower = rawContent.toLowerCase();
+    return (
+      (lower.includes('"slides"') || lower.includes('"deck_title"') || lower.includes('"kpi_cards"')) &&
+      (language === 'json' || rawContent.trim().startsWith('{') || rawContent.trim().startsWith('```'))
+    );
+  }, [rawContent, language]);
+
   // Detect if code block is a valid SlideDeck schema
   const detectedDeck = useMemo<SlideDeck | null>(() => {
     if (!rawContent || (!rawContent.includes('"slides"') && !rawContent.includes('"deck_title"'))) return null;
+    let jsonStr = rawContent.trim();
+    const match = jsonStr.match(/\{[\s\S]*\}/);
+    if (match) {
+      jsonStr = match[0];
+    }
     try {
-      const parsed = JSON.parse(rawContent.trim());
+      // Remove trailing commas before } or ]
+      const cleaned = jsonStr.replace(/,\s*([\]}])/g, '$1');
+      const parsed = JSON.parse(cleaned);
       if (parsed && typeof parsed === 'object') {
         const slides = Array.isArray(parsed.slides) ? parsed.slides : null;
         if (slides && slides.length > 0) {
@@ -232,10 +249,54 @@ export function MarkdownPreBlock({
         }
       }
     } catch {
-      // not a json slide deck
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (parsed && typeof parsed === 'object') {
+          const slides = Array.isArray(parsed.slides) ? parsed.slides : null;
+          if (slides && slides.length > 0) {
+            return {
+              deck_title: parsed.deck_title || parsed.title || slides[0]?.title || 'Executive Presentation',
+              deck_subtitle: parsed.deck_subtitle || parsed.subtitle,
+              theme: parsed.theme || 'dark',
+              author: parsed.author || 'AI Platform Orchestrator',
+              slides,
+              sources_summary: parsed.sources_summary || [],
+            } as SlideDeck;
+          }
+        }
+      } catch {
+        // not a json slide deck or still streaming
+      }
     }
     return null;
   }, [rawContent]);
+
+  // While streaming: if it's a slide deck payload being generated, show the sleek slide deck synthesis progress card instead of raw JSON!
+  if (isStreaming && isSlideDeckJson) {
+    return (
+      <div className="slide-deck-generating-card" aria-live="polite">
+        <div className="slide-deck-generating-header">
+          <div className="slide-deck-icon-badge">
+            <Presentation size={15} />
+          </div>
+          <div className="slide-deck-generating-info">
+            <span className="slide-deck-generating-title">
+              Synthesizing Executive Presentation Deck…
+            </span>
+            <span className="slide-deck-generating-sub">
+              Compiling BigQuery KPI scorecards, trend charts, and strategic insights into 16:9 slides
+            </span>
+          </div>
+          <span className="slide-deck-generating-badge">
+            <Loader2 size={12} className="spin-fast" /> Building slides…
+          </span>
+        </div>
+        <div className="slide-deck-generating-progress-bar">
+          <div className="slide-deck-progress-shimmer" />
+        </div>
+      </div>
+    );
+  }
 
   // If it's a valid slide deck, render the interactive SlideDeckViewer widget!
   if (detectedDeck) {

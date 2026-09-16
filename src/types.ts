@@ -3,6 +3,18 @@ export interface AttachedDocMeta {
   filename: string;
 }
 
+export interface ToolCallEvent {
+  id: string;
+  tool_name: string;
+  display_name?: string;
+  arguments?: Record<string, any>;
+  status: 'running' | 'success' | 'error';
+  duration_ms?: number;
+  result_preview?: string;
+  error?: string;
+  timestamp?: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -15,6 +27,7 @@ export interface Message {
   model?: string;
   complexity_score?: number;
   attachedDocs?: AttachedDocMeta[];
+  toolEvents?: ToolCallEvent[];
 }
 
 export interface Session {

@@ -1,7 +1,8 @@
 import { DocumentManagerModal } from './components/DocumentManagerModal';
-import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { Cpu, Database, GitBranch, X, Bot } from 'lucide-react';
+import { TopNav } from './components/TopNav';
+import { ToolRegistryModal } from './components/ToolRegistryModal';
+import { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Sidebar } from './components/Sidebar';
 import { Login } from './pages/Login';
@@ -10,52 +11,6 @@ import { UserPage } from './pages/User';
 import { AdminPage } from './pages/Admin';
 import type { Session, Agent } from './types';
 import { fetchSessions, fetchAgents, deleteSession as apiDeleteSession } from './api';
-
-// ─── Agents Panel ─────────────────────────────────────────────────────────────
-interface AgentsPanelProps { agents: Agent[]; onClose: () => void; }
-
-const AGENT_ICON_MAP: Record<string, React.ReactNode> = {
-  orchestrator: <GitBranch size={18} color="#fff" />,
-  'ai-agent':   <Cpu size={18} color="#fff" />,
-  'rag-agent':  <Database size={18} color="#fff" />,
-};
-
-function AgentsPanel({ agents, onClose }: AgentsPanelProps) {
-  return (
-    <div className="panel-overlay" role="dialog" aria-modal="true" aria-label="Agent registry">
-      <div className="panel">
-        <div className="panel-header">
-          <h2 className="panel-title">Agent Registry</h2>
-          <button className="panel-close-btn" onClick={onClose} aria-label="Close agents panel" id="btn-close-agents">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="agent-list">
-          {agents.map((a) => (
-            <div key={a.agent_id} className="agent-card" role="article" aria-label={a.name}>
-              <div className={`agent-icon ${a.type}`} aria-hidden="true">
-                {AGENT_ICON_MAP[a.type] ?? <Bot size={18} color="#fff" />}
-              </div>
-              <div className="agent-info">
-                <div className="agent-name">{a.name}</div>
-                <div className="agent-desc">{a.description}</div>
-                <div className="agent-caps">
-                  {a.capabilities.map((c) => (
-                    <span key={c} className="cap-tag">{c}</span>
-                  ))}
-                </div>
-              </div>
-              <div className="agent-status">
-                <span className="dot" aria-hidden="true" style={{ background: 'var(--success)', width: 6, height: 6, borderRadius: '50%', display: 'inline-block' }} />
-                {a.status}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Router Guards ────────────────────────────────────────────────────────────
 function ProtectedRoute() {
@@ -98,18 +53,6 @@ function MainLayout({
   setShowUpload,
   agents,
 }: MainLayoutProps) {
-  const { user } = useAuth();
-  const location = useLocation();
-
-  let topbarTitle = 'AI Platform Chat';
-  if (location.pathname === '/') {
-    topbarTitle = activeSessionId ? 'Conversation' : 'AI Platform Chat';
-  } else if (location.pathname === '/profile') {
-    topbarTitle = 'User Profile';
-  } else if (location.pathname === '/admin') {
-    topbarTitle = 'Admin Console';
-  }
-
   return (
     <div className="app-layout">
       <Sidebar
@@ -123,39 +66,20 @@ function MainLayout({
       />
 
       <div className="main-area">
-        <header className="topbar">
-          <h1 className="topbar-title">{topbarTitle}</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {user && (
-              <div 
-                className="credit-chip" 
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(19, 62, 66, 0.06)',
-                  border: '1px solid rgba(19, 62, 66, 0.12)',
-                  borderRadius: 'var(--r-full)',
-                  padding: '6px 14px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  color: 'var(--text-primary-dark)',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-                title={user.role === 'admin' ? 'Unlimited Admin Credits' : `${user.credits} remaining credits`}
-              >
-                <span style={{ color: 'var(--warning)', marginRight: '2px' }}>⚡</span>
-                {user.role === 'admin' ? 'Admin (Unlimited)' : `${user.credits} Credits`}
-              </div>
-            )}
-          </div>
-        </header>
+        <TopNav
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onShowAgents={onShowAgents}
+          onShowUpload={onShowUpload}
+          agents={agents}
+          onNewChat={onNewChat}
+        />
 
         <Outlet />
       </div>
 
       {showAgents && (
-        <AgentsPanel agents={agents} onClose={() => setShowAgents(false)} />
+        <ToolRegistryModal agents={agents} onClose={() => setShowAgents(false)} />
       )}
 
       <DocumentManagerModal

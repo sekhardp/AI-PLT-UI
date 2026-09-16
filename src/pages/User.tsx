@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   User as UserIcon,
@@ -15,7 +15,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { fetchDocuments, fetchAgents, fetchSessions, type QuotaInfo } from '../api';
+import { fetchDocuments, fetchAgents, fetchSessions, checkLocalLlmHealth, type QuotaInfo, type HealthStatus } from '../api';
 import type { Agent, Session } from '../types';
 
 export function UserPage() {
@@ -25,6 +25,11 @@ export function UserPage() {
   const [docQuota, setDocQuota] = useState<QuotaInfo | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [localLlmHealth, setLocalLlmHealth] = useState<HealthStatus>({
+    online: true,
+    status: 'checking',
+    model: 'Qwen 2.5 7B',
+  });
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
 
@@ -38,10 +43,11 @@ export function UserPage() {
     const userId = activeUser?.id ? String(activeUser.id) : (activeUser?.email || 'default_user');
 
     try {
-      const [docsData, agentsData, sessionsData] = await Promise.all([
+      const [docsData, agentsData, sessionsData, healthData] = await Promise.all([
         fetchDocuments(userId).catch(() => ({ documents: [], quota: null })),
         fetchAgents().catch(() => []),
         fetchSessions(userId).catch(() => []),
+        checkLocalLlmHealth().catch(() => ({ online: false, status: 'standby' as const })),
         refreshUsers().catch(() => {}),
       ]);
 
@@ -50,7 +56,10 @@ export function UserPage() {
       }
       setAgents(agentsData || []);
       setSessions(sessionsData || []);
-      setSyncFeedback('Profile synchronized with Cloud SQL');
+      if (healthData) {
+        setLocalLlmHealth(healthData);
+      }
+      setSyncFeedback('Profile synchronized with Cloud SQL & Instance Health');
       setTimeout(() => setSyncFeedback(null), 2500);
     } catch (err) {
       console.warn('Failed to load user profile data:', err);
@@ -69,15 +78,6 @@ export function UserPage() {
     logout();
     navigate('/login');
   };
-
-  const isLocalLlmOnline = useMemo(() => {
-    return agents.some(
-      (a) =>
-        a.name.toLowerCase().includes('local') ||
-        a.name.toLowerCase().includes('vllm') ||
-        a.capabilities?.some((c) => c.toLowerCase().includes('vllm') || c.toLowerCase().includes('local'))
-    );
-  }, [agents]);
 
   if (!user) return null;
 
@@ -581,14 +581,25 @@ export function UserPage() {
             </div>
             <div className="info-row">
               <span className="info-label">Local GPU vLLM</span>
-              <span className={`status-tag ${isLocalLlmOnline ? 'online' : 'standby'}`}>
-                {isLocalLlmOnline ? '● Online (Qwen 2.5 7B)' : '● Standby (Routing to Frontier)'}
+              <span
+                className={`status-tag ${localLlmHealth.online ? 'online' : 'standby'}`}
+                title={
+                  localLlmHealth.latencyMs !== undefined
+                    ? `Live Health Probe: ${localLlmHealth.latencyMs}ms latency (${localLlmHealth.online ? 'Healthy' : 'Unreachable'})`
+                    : 'Instance Health Check'
+                }
+              >
+                {localLlmHealth.status === 'checking'
+                  ? '● Probing Instance…'
+                  : localLlmHealth.online
+                  ? `● Online (${localLlmHealth.model || 'Qwen 2.5 7B'})`
+                  : '● Standby (Routing to Frontier)'}
               </span>
             </div>
             <div className="info-row">
               <span className="info-label">MCP Tool Access</span>
               <span className="info-value" style={{ fontSize: '0.78rem' }}>
-                BigQuery · Weather · RAG Search
+                {agents.length > 0 ? `${agents.length} Connected Tools (BigQuery · RAG · PPT)` : 'BigQuery · RAG Search · PPT'}
               </span>
             </div>
             <div className="info-row">

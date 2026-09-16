@@ -364,7 +364,27 @@ export function Chat({
         currentDocIds,
         user?.id ? String(user.id) : user?.email,
         activeModelOption.modelParam,
-        abortController.signal
+        abortController.signal,
+        (toolEvt) => {
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== streamingMsgId) return m;
+              const existingTools = m.toolEvents ? [...m.toolEvents] : [];
+              const idx = existingTools.findIndex(
+                (t) => t.id === toolEvt.id || (t.tool_name === toolEvt.tool_name && t.status === 'running')
+              );
+              if (idx !== -1) {
+                existingTools[idx] = {
+                  ...existingTools[idx],
+                  ...toolEvt,
+                };
+              } else {
+                existingTools.push(toolEvt);
+              }
+              return { ...m, toolEvents: existingTools };
+            })
+          );
+        }
       );
     } catch {
       abortControllerRef.current = null;
