@@ -46,7 +46,7 @@ export function AdminPage() {
   const [localLlmHealth, setLocalLlmHealth] = useState<HealthStatus>({
     online: true,
     status: 'checking',
-    model: 'Qwen 2.5 7B',
+    model: 'Qwen 2.5 Coder 14B',
   });
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [isCheckingSystems, setIsCheckingSystems] = useState(false);
@@ -91,7 +91,7 @@ export function AdminPage() {
         fetchNegativeFeedbacks().catch(() => []),
         fetchTokenStats().catch(() => null),
         checkLocalLlmHealth().catch(() => ({ online: false, status: 'standby' as const })),
-        refreshUsersRef.current().catch(() => {}),
+        refreshUsersRef.current().catch(() => { }),
       ]);
 
       const duration = Math.round(performance.now() - start);
@@ -959,8 +959,8 @@ export function AdminPage() {
               {isCheckingSystems
                 ? 'Running Diagnostics...'
                 : latencyMs !== null
-                ? `Systems Operational (${latencyMs}ms)`
-                : 'Systems Ready'}
+                  ? `Systems Operational (${latencyMs}ms)`
+                  : 'Systems Ready'}
             </span>
           </div>
 
@@ -1002,10 +1002,10 @@ export function AdminPage() {
           </div>
         </div>
 
-        {/* KPI 2 [NEW TILE 1]: Local Model Token Consumption (Qwen 2.5 7B) */}
+        {/* KPI 2 [NEW TILE 1]: Local Model Token Consumption (Qwen 2.5 Coder 14B) */}
         <div className="kpi-card" style={{ borderLeft: '3px solid var(--accent)' }}>
           <div className="kpi-card-header">
-            <span>Local Model Tokens (Qwen 2.5 7B)</span>
+            <span>Local Model Tokens (Qwen 2.5 Coder 14B)</span>
             <div className="kpi-icon-box" style={{ background: 'rgba(10, 95, 107, 0.1)' }}>
               <Cpu size={16} color="var(--accent)" />
             </div>
@@ -1200,15 +1200,14 @@ export function AdminPage() {
 
                           <td>
                             <span
-                              className={`credit-health-badge ${
-                                u.role === 'admin'
-                                  ? 'good'
-                                  : u.credits > 10
+                              className={`credit-health-badge ${u.role === 'admin'
+                                ? 'good'
+                                : u.credits > 10
                                   ? 'good'
                                   : u.credits > 0
-                                  ? 'low'
-                                  : 'exhausted'
-                              }`}
+                                    ? 'low'
+                                    : 'exhausted'
+                                }`}
                             >
                               {u.role === 'admin' ? 'Unlimited' : `${u.credits} remaining`}
                             </span>
@@ -1354,7 +1353,7 @@ export function AdminPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span className={`qa-meta-pill ${item.routed_to === 'frontier' ? 'model-frontier' : 'model-local'}`}>
                           <Zap size={11} />
-                          {item.model || (item.routed_to === 'frontier' ? 'Gemini 2.5 Flash' : 'Qwen 2.5 7B')}
+                          {item.model || (item.routed_to === 'frontier' ? 'Gemini 2.5 Flash' : 'Qwen 2.5 Coder 14B')}
                         </span>
 
                         <span
@@ -1460,7 +1459,7 @@ export function AdminPage() {
                     <div className="service-name">Local GPU vLLM Engine</div>
                     <div className="service-desc">
                       {localLlmHealth.online
-                        ? `Qwen 2.5 7B GPU inference (${localLlmHealth.latencyMs !== undefined ? `${localLlmHealth.latencyMs}ms probe` : 'Connected'})`
+                        ? `Qwen 2.5 Coder 14B GPU inference (${localLlmHealth.latencyMs !== undefined ? `${localLlmHealth.latencyMs}ms probe` : 'Connected'})`
                         : 'vLLM instance unreachable — Traffic routed to Frontier'}
                     </div>
                   </div>
@@ -1478,8 +1477,8 @@ export function AdminPage() {
                   {localLlmHealth.status === 'checking'
                     ? 'Probing…'
                     : localLlmHealth.online
-                    ? 'Online'
-                    : 'Standby / Offline'}
+                      ? 'Online'
+                      : 'Standby / Offline'}
                 </span>
               </div>
 
@@ -1627,7 +1626,7 @@ export function AdminPage() {
                         <Cpu size={14} color="var(--accent)" />
                         <div>
                           <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary-dark)' }}>
-                            Qwen 2.5 7B (Local LLM)
+                            Qwen 2.5 Coder 14B (Local LLM)
                           </div>
                           <div style={{ fontSize: '0.66rem', opacity: 0.65 }}>
                             {metrics.localQueries} queries · {metrics.localPct}% share

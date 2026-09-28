@@ -28,7 +28,7 @@ export function UserPage() {
   const [localLlmHealth, setLocalLlmHealth] = useState<HealthStatus>({
     online: true,
     status: 'checking',
-    model: 'Qwen 2.5 7B',
+    model: 'Qwen 2.5 Coder 14B',
   });
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function UserPage() {
         fetchAgents().catch(() => []),
         fetchSessions(userId).catch(() => []),
         checkLocalLlmHealth().catch(() => ({ online: false, status: 'standby' as const })),
-        refreshUsers().catch(() => {}),
+        refreshUsers().catch(() => { }),
       ]);
 
       if (docsData && docsData.quota) {
@@ -592,8 +592,8 @@ export function UserPage() {
                 {localLlmHealth.status === 'checking'
                   ? '● Probing Instance…'
                   : localLlmHealth.online
-                  ? `● Online (${localLlmHealth.model || 'Qwen 2.5 7B'})`
-                  : '● Standby (Routing to Frontier)'}
+                    ? `● Online (${localLlmHealth.model || 'Qwen 2.5 Coder 14B'})`
+                    : '● Standby (Routing to Frontier)'}
               </span>
             </div>
             <div className="info-row">
