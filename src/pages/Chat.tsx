@@ -57,13 +57,13 @@ const MODEL_OPTIONS: ModelOption[] = [
     modelParam: 'gemini-2.5-pro',
   },
   {
-    id: 'qwen-2.5-coder-14b',
-    name: 'Qwen 2.5 Coder 14B (Local LLM)',
+    id: 'qwen-2.5-7b',
+    name: 'Qwen 2.5 7B (Local LLM)',
     tier: 'local',
     tag: 'Local GPU',
-    description: 'Private, high-performance coding and tool execution on local vLLM GPU',
+    description: 'Private, low-latency execution hosted on local vLLM GPU infrastructure',
     speed: 'Fast',
-    modelParam: 'Qwen/Qwen2.5-Coder-14B-Instruct',
+    modelParam: 'Qwen/Qwen2.5-7B-Instruct',
   },
 ];
 
@@ -168,7 +168,7 @@ export function Chat({
     try {
       const res = await fetchDocuments(user?.id ? String(user.id) : (user?.email || 'default_user'));
       setAvailableDocs(res.documents || []);
-    } catch { }
+    } catch {}
   }, [user]);
 
   useEffect(() => {
@@ -245,12 +245,12 @@ export function Chat({
       prev.map((m) =>
         m.id === streamingMsgId
           ? {
-            ...m,
-            isStreaming: false,
-            content: m.content
-              ? m.content + '\n\n*(Execution stopped by user)*'
-              : '*(Execution stopped by user)*',
-          }
+              ...m,
+              isStreaming: false,
+              content: m.content
+                ? m.content + '\n\n*(Execution stopped by user)*'
+                : '*(Execution stopped by user)*',
+            }
           : m
       )
     );
@@ -333,12 +333,12 @@ export function Chat({
             return prev.map((m) =>
               m.id === streamingMsgId
                 ? {
-                  ...m,
-                  isStreaming: false,
-                  routed_to: meta?.routed_to || m.routed_to,
-                  model: meta?.model || m.model,
-                  complexity_score: meta?.complexity_score ?? m.complexity_score,
-                }
+                    ...m,
+                    isStreaming: false,
+                    routed_to: meta?.routed_to || m.routed_to,
+                    model: meta?.model || m.model,
+                    complexity_score: meta?.complexity_score ?? m.complexity_score,
+                  }
                 : m
             );
           });
@@ -352,11 +352,11 @@ export function Chat({
             prev.map((m) =>
               m.id === streamingMsgId
                 ? {
-                  ...m,
-                  routed_to: meta.routed_to || m.routed_to,
-                  model: meta.model || m.model,
-                  complexity_score: meta.complexity_score ?? m.complexity_score,
-                }
+                    ...m,
+                    routed_to: meta.routed_to || m.routed_to,
+                    model: meta.model || m.model,
+                    complexity_score: meta.complexity_score ?? m.complexity_score,
+                  }
                 : m
             )
           );
@@ -392,10 +392,10 @@ export function Chat({
         prev.map((m) =>
           m.id === streamingMsgId
             ? {
-              ...m,
-              content: m.content || '⚠️ Failed to connect to the API. Make sure the backend is running.',
-              isStreaming: false,
-            }
+                ...m,
+                content: m.content || '⚠️ Failed to connect to the API. Make sure the backend is running.',
+                isStreaming: false,
+              }
             : m
         )
       );
@@ -438,7 +438,7 @@ export function Chat({
             user_prompt: prevUserMsg ? prevUserMsg.content : 'Question prompt unavailable',
             assistant_response: targetMsg.content,
             rating: -1,
-            model: targetMsg.model || (targetMsg.routed_to === 'local' ? 'Qwen 2.5 Coder 14B' : 'Gemini 2.5 Flash'),
+            model: targetMsg.model || (targetMsg.routed_to === 'local' ? 'Qwen 2.5 7B' : 'Gemini 2.5 Flash'),
             routed_to: targetMsg.routed_to || 'local',
             created_at: new Date().toISOString(),
             status: 'open',

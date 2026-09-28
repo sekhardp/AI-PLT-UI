@@ -152,7 +152,7 @@ export function getLocalNegativeFeedbacks(): NegativeFeedbackItem[] {
   try {
     const raw = localStorage.getItem(NEGATIVE_FEEDBACK_KEY);
     if (raw) return JSON.parse(raw);
-  } catch { }
+  } catch {}
   return [];
 }
 
@@ -161,7 +161,7 @@ export function recordNegativeFeedback(item: NegativeFeedbackItem) {
     const list = getLocalNegativeFeedbacks();
     const filtered = list.filter(f => !(f.session_id === item.session_id && f.user_prompt === item.user_prompt));
     localStorage.setItem(NEGATIVE_FEEDBACK_KEY, JSON.stringify([item, ...filtered]));
-  } catch { }
+  } catch {}
 }
 
 export function updateNegativeFeedbackStatus(id: string, status: 'open' | 'reviewed' | 'resolved') {
@@ -169,7 +169,7 @@ export function updateNegativeFeedbackStatus(id: string, status: 'open' | 'revie
     const list = getLocalNegativeFeedbacks();
     const updated = list.map(item => item.id === id ? { ...item, status } : item);
     localStorage.setItem(NEGATIVE_FEEDBACK_KEY, JSON.stringify(updated));
-  } catch { }
+  } catch {}
 }
 
 export async function fetchNegativeFeedbacks(): Promise<NegativeFeedbackItem[]> {
@@ -183,7 +183,7 @@ export async function fetchNegativeFeedbacks(): Promise<NegativeFeedbackItem[]> 
       const unique = Array.from(new Map(combined.map(item => [item.session_id + (item.user_prompt || item.id), item])).values());
       return unique;
     }
-  } catch { }
+  } catch {}
   return localList;
 }
 
@@ -429,7 +429,7 @@ export async function checkLocalLlmHealth(): Promise<HealthStatus> {
         online: isHealthy,
         status: isHealthy ? 'online' : 'standby',
         latencyMs,
-        model: 'Qwen 2.5 Coder 14B',
+        model: 'Qwen 2.5 7B',
         timestamp: data.timestamp || new Date().toISOString(),
       };
     }

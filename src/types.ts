@@ -107,7 +107,7 @@ export interface SlideDeck {
 }
 
 // ─── Model Selection & Per-Model Token Analytics Types ────────────────────────
-export type ModelId = 'auto' | 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'qwen-2.5-coder-14b';
+export type ModelId = 'auto' | 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'qwen-2.5-7b';
 
 export interface ModelOption {
   id: ModelId;
