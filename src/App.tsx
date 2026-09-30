@@ -37,6 +37,7 @@ interface MainLayoutProps {
   setShowAgents: (val: boolean) => void;
   setShowUpload: (val: boolean) => void;
   agents: Agent[];
+  onRefreshAgents?: () => Promise<void>;
 }
 
 function MainLayout({
@@ -52,6 +53,7 @@ function MainLayout({
   setShowAgents,
   setShowUpload,
   agents,
+  onRefreshAgents,
 }: MainLayoutProps) {
   return (
     <div className="app-layout">
@@ -79,7 +81,7 @@ function MainLayout({
       </div>
 
       {showAgents && (
-        <ToolRegistryModal agents={agents} onClose={() => setShowAgents(false)} />
+        <ToolRegistryModal agents={agents} onRefresh={onRefreshAgents} onClose={() => setShowAgents(false)} />
       )}
 
       <DocumentManagerModal
@@ -139,13 +141,17 @@ function AppContent() {
                   onNewChat={startNewChat}
                   onSelectSession={selectSession}
                   onDeleteSession={deleteSession}
-                  onShowAgents={() => setShowAgents(true)}
+                  onShowAgents={() => {
+                    fetchAgents(true).then(setAgents).catch(console.warn);
+                    setShowAgents(true);
+                  }}
                   onShowUpload={() => setShowUpload(true)}
                   showAgents={showAgents}
                   showUpload={showUpload}
                   setShowAgents={setShowAgents}
                   setShowUpload={setShowUpload}
                   agents={agents}
+                  onRefreshAgents={async () => { const a = await fetchAgents(true); setAgents(a); }}
                 />
               }
             >

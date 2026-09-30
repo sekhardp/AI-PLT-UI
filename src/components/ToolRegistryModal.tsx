@@ -1,6 +1,8 @@
+import React, { useState } from 'react';
 import {
   X,
   Wrench,
+  RefreshCw,
   GitBranch,
   Database,
   Search,
@@ -15,6 +17,7 @@ import type { Agent } from '../types';
 interface ToolRegistryModalProps {
   agents: Agent[];
   onClose: () => void;
+  onRefresh?: () => Promise<void>;
 }
 
 interface FormattedToolItem {
@@ -110,7 +113,18 @@ function parseToolItem(item: Agent): FormattedToolItem {
   };
 }
 
-export function ToolRegistryModal({ agents, onClose }: ToolRegistryModalProps) {
+export function ToolRegistryModal({ agents, onClose, onRefresh }: ToolRegistryModalProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   const parsedItems = agents.map(parseToolItem);
 
   const orchestrator = parsedItems.find((i) => i.isOrchestrator) || {
@@ -143,9 +157,22 @@ export function ToolRegistryModal({ agents, onClose }: ToolRegistryModalProps) {
               </p>
             </div>
           </div>
-          <button className="panel-close-btn" onClick={onClose} aria-label="Close tool registry" id="btn-close-tools">
-            <X size={18} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {onRefresh && (
+              <button
+                className="panel-close-btn"
+                onClick={handleRefresh}
+                title="Refresh connected tools from MCP gateway"
+                disabled={isRefreshing}
+                style={{ cursor: isRefreshing ? 'wait' : 'pointer' }}
+              >
+                <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+              </button>
+            )}
+            <button className="panel-close-btn" onClick={onClose} aria-label="Close tool registry" id="btn-close-tools">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="tool-registry-body">

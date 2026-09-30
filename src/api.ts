@@ -222,8 +222,9 @@ export async function deleteSession(sessionId: string, userId?: string) {
   await fetch(url, { method: 'DELETE' });
 }
 
-export async function fetchAgents() {
-  const res = await fetch(`${getBase()}/agents`);
+export async function fetchAgents(sync: boolean = false) {
+  const url = sync ? `${getBase()}/agents?sync=true` : `${getBase()}/agents`;
+  const res = await fetch(url);
   const data = await res.json();
   return data.agents;
 }
